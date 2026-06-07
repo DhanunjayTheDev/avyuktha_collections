@@ -75,7 +75,7 @@ export interface Collection {
 export interface Order {
   _id: string;
   orderId: string;
-  user: { _id: string; name: string; email: string };
+  user: { _id: string; name: string; email: string; phone?: string };
   items: OrderItem[];
   shippingAddress: Address;
   subtotal: number;
@@ -85,6 +85,8 @@ export interface Order {
   paymentMethod: string;
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   status: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'returned' | 'cancelled';
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   awbCode?: string;
   trackingUrl?: string;
   createdAt: string;

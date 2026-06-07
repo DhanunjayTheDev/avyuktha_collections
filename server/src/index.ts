@@ -6,29 +6,35 @@ import logger from './utils/logger';
 
 const PORT = Number(process.env.PORT) || 5000;
 
-const bootstrap = async () => {
-  await connectDB();
-  await verifyEmailConnection();
+// Open the port FIRST so the platform (Cloud Run) sees a listening
+// container immediately. Connect to external services afterwards.
+const server = app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT} [${process.env.NODE_ENV}]`);
+});
 
-  const server = app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT} [${process.env.NODE_ENV}]`);
-  });
+// DB connect runs after listen. If it fails the process exits so the
+// platform restarts the revision (loud failure beats silent broken DB).
+connectDB().catch((err) => {
+  logger.error('MongoDB connection failed:', err);
+  process.exit(1);
+});
 
-  const shutdown = (signal: string) => {
-    logger.info(`${signal} received. Shutting down gracefully...`);
-    server.close(() => {
-      logger.info('HTTP server closed');
-      process.exit(0);
-    });
-  };
+// Email verification is non-fatal — never block or kill the server.
+verifyEmailConnection().catch((err) => {
+  logger.warn('Email connection verify failed:', err);
+});
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-
-  process.on('unhandledRejection', (err) => {
-    logger.error('Unhandled rejection:', err);
-    server.close(() => process.exit(1));
+const shutdown = (signal: string) => {
+  logger.info(`${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
   });
 };
 
-bootstrap();
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+process.on('unhandledRejection', (err) => {
+  logger.error('Unhandled rejection:', err);
+});
