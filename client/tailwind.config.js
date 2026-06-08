@@ -12,22 +12,24 @@ export default {
     },
     extend: {
       colors: {
+        // All brand colors come from CSS variables in globals.css (single
+        // source of truth). <alpha-value> keeps opacity utilities working.
         primary: {
-          DEFAULT: '#C8A97E',
-          light: '#D9BFA0',
-          dark: '#A8864A',
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          light: 'rgb(var(--color-primary-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: '#D8A7B1',
-          light: '#E8C4CB',
-          dark: '#B87D8A',
+          DEFAULT: 'rgb(var(--color-secondary) / <alpha-value>)',
+          light: 'rgb(var(--color-secondary-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-secondary-dark) / <alpha-value>)',
         },
         brand: {
-          bg: '#FFF9F5',
-          surface: '#F5EFE8',
-          text: '#1C1C1C',
-          muted: '#6B6B6B',
-          border: '#E8DDD4',
+          bg: 'rgb(var(--color-bg) / <alpha-value>)',
+          surface: 'rgb(var(--color-surface) / <alpha-value>)',
+          text: 'rgb(var(--color-text) / <alpha-value>)',
+          muted: 'rgb(var(--color-muted) / <alpha-value>)',
+          border: 'rgb(var(--color-border) / <alpha-value>)',
         },
       },
       fontFamily: {

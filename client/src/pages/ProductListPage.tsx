@@ -94,7 +94,6 @@ export default function ProductListPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
-  const productsPaneRef = useRef<HTMLDivElement>(null);
 
   const page        = Number(params.get('page') || 1);
   const sort        = params.get('sort') || '-createdAt';
@@ -156,7 +155,6 @@ export default function ProductListPage() {
   }, [fetchProducts]);
 
   useEffect(() => {
-    productsPaneRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [search$]);
 
@@ -333,10 +331,10 @@ export default function ProductListPage() {
   );
 
   return (
-    <div className="bg-brand-bg flex flex-col pt-[var(--topbar-height)] lg:pt-0 lg:mt-[var(--topbar-height)] lg:h-[calc(100vh-var(--topbar-height))] lg:overflow-hidden">
+    <div className="bg-brand-bg min-h-screen" style={{ paddingTop: 'var(--topbar-height)' }}>
       {/* ── Header band ── */}
-      <div className="flex-shrink-0 border-b border-brand-border bg-white">
-        <div className="container-custom py-4 flex items-end justify-between gap-4 flex-wrap">
+      <div className="border-b border-brand-border bg-white">
+        <div className="container-custom py-5 flex items-end justify-between gap-4 flex-wrap">
           <div>
             <p className="font-body text-[10px] tracking-[0.25em] uppercase text-primary font-semibold mb-0.5">
               {productTypeName || (collectionName ? 'Collection' : 'Shop')}
@@ -349,27 +347,29 @@ export default function ProductListPage() {
         </div>
       </div>
 
-      {/* ── Two-pane body ── */}
-      <div className="flex-1 flex lg:overflow-hidden">
-        {/* Sidebar */}
-        <aside className="hidden lg:flex flex-col w-60 xl:w-64 flex-shrink-0 border-r border-brand-border bg-white overflow-y-auto"
-          data-lenis-prevent style={{ overscrollBehavior: 'contain' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border sticky top-0 bg-white z-10">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal size={14} className="text-brand-muted" />
-              <span className="font-body text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text">Filters</span>
-              {activeCount > 0 && <span className="w-4 h-4 bg-primary text-white rounded-full text-[8px] font-bold flex items-center justify-center">{activeCount}</span>}
+      {/* ── Body: whole page scrolls (mobile-safe); sidebar sticky on desktop ── */}
+      <div className="container-custom flex items-start gap-6 lg:gap-8">
+        {/* Sidebar — desktop only, sticky with its own scroll region */}
+        <aside className="hidden lg:block w-60 xl:w-64 flex-shrink-0 self-start sticky" style={{ top: 'calc(var(--topbar-height) + 1rem)' }}>
+          <div className="overflow-y-auto pr-1" data-lenis-prevent
+            style={{ maxHeight: 'calc(100vh - var(--topbar-height) - 2rem)', overscrollBehavior: 'contain' }}>
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={14} className="text-brand-muted" />
+                <span className="font-body text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text">Filters</span>
+                {activeCount > 0 && <span className="w-4 h-4 bg-primary text-white rounded-full text-[8px] font-bold flex items-center justify-center">{activeCount}</span>}
+              </div>
+              {activeCount > 0 && <button onClick={clearAll} className="font-body text-[11px] text-primary hover:text-primary-dark transition-colors">Clear all</button>}
             </div>
-            {activeCount > 0 && <button onClick={clearAll} className="font-body text-[11px] text-primary hover:text-primary-dark transition-colors">Clear all</button>}
+            <Filters />
           </div>
-          <div className="px-5 pb-8"><Filters /></div>
         </aside>
 
         {/* Products */}
-        <div ref={productsPaneRef} className="flex-1 min-w-0 lg:overflow-y-auto" data-lenis-prevent style={{ overscrollBehavior: 'contain' }}>
-          {/* Toolbar */}
-          <div className="sticky top-[var(--topbar-height)] lg:top-0 z-20 bg-brand-bg/95 backdrop-blur-sm border-b border-brand-border">
-            <div className="flex items-center gap-3 px-4 md:px-6 py-3">
+        <div className="flex-1 min-w-0 py-5">
+          {/* Toolbar — sticks below the fixed header as the page scrolls */}
+          <div className="sticky z-20 bg-brand-bg/95 backdrop-blur-sm border-b border-brand-border" style={{ top: 'var(--topbar-height)' }}>
+            <div className="flex items-center gap-3 py-3">
               <button onClick={() => setMobileOpen(true)}
                 className="lg:hidden flex items-center gap-1.5 border border-brand-border px-3.5 py-2 font-body text-[11px] text-brand-muted hover:border-brand-text hover:text-brand-text transition-colors">
                 <SlidersHorizontal size={12} /> Filters
@@ -412,7 +412,7 @@ export default function ProductListPage() {
             </div>
 
             {chips.length > 0 && (
-              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-4 pb-3">
+              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-3">
                 {chips.map((chip, i) => (
                   <button key={i} onClick={chip.clear}
                     className="inline-flex items-center gap-1 flex-shrink-0 font-body text-[10px] font-medium px-2.5 py-1.5 bg-brand-surface border border-brand-border text-brand-text">
@@ -425,7 +425,7 @@ export default function ProductListPage() {
           </div>
 
           {/* Grid */}
-          <div className="px-4 md:px-6 py-6">
+          <div className="py-6">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
@@ -476,10 +476,10 @@ export default function ProductListPage() {
               </>
             )}
           </div>
-
-          <Footer />
         </div>
       </div>
+
+      <Footer />
 
       {/* ── Mobile Drawer ── */}
       <AnimatePresence>

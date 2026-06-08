@@ -1,5 +1,6 @@
 ﻿import { Link } from 'react-router-dom';
 import { Camera, Share2, Play, MessageCircle } from 'lucide-react';
+import PaymentLogos from '../common/PaymentLogos';
 
 const LINKS = {
   Shop: [
@@ -100,16 +101,7 @@ export default function Footer() {
           <p className="font-body text-xs text-white/40">
             © {new Date().getFullYear()} Avyuktha Fashions. All rights reserved.
           </p>
-          <div className="flex items-center gap-3">
-            {['Visa', 'Mastercard', 'UPI', 'Razorpay'].map((p) => (
-              <span
-                key={p}
-                className="font-body text-xs text-white/40 border border-white/10 px-2 py-1"
-              >
-                {p}
-              </span>
-            ))}
-          </div>
+          <PaymentLogos />
         </div>
       </div>
     </footer>

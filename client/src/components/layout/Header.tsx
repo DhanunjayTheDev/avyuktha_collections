@@ -77,10 +77,26 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
   const isHome = location.pathname === '/';
   const transparent = isHome && !scrolled;
 
+  // Keep --topbar-height in sync with the REAL header height (announcement bar
+  // can wrap to 2 lines on small screens, making the fixed header taller than
+  // the static CSS value and tucking page content underneath it).
+  const topbarRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (!el) return;
+    const apply = () =>
+      document.documentElement.style.setProperty('--topbar-height', `${el.offsetHeight}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener('resize', apply);
+    return () => { ro.disconnect(); window.removeEventListener('resize', apply); };
+  }, [isCheckout]);
+
   return (
     <>
       {/* Single fixed container: announcement bar + nav */}
-      <div className="fixed top-0 left-0 right-0 z-50">
+      <div ref={topbarRef} className="fixed top-0 left-0 right-0 z-50">
         {!isCheckout && <AnnouncementBar />}
       <header
         className={`transition-all duration-500 ${
