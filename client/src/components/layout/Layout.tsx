@@ -5,6 +5,8 @@ import Header from './Header';
 import Footer from './Footer';
 import CartDrawer from '../cart/CartDrawer';
 import CustomCursor from '../common/CustomCursor';
+import ScrollToTop from '../common/ScrollToTop';
+import CookieConsent from '../common/CookieConsent';
 import { useLenis } from '../../hooks/useLenis';
 import { useAuthStore } from '../../stores/authStore';
 import { useCartStore } from '../../stores/cartStore';
@@ -34,6 +36,7 @@ export default function Layout() {
 
   return (
     <>
+      <ScrollToTop />
       <CustomCursor />
       {!isAuthPage && <Header isCheckout={isCheckout} />}
       <AnimatePresence mode="wait">
@@ -49,6 +52,7 @@ export default function Layout() {
       </AnimatePresence>
       {!isAuthPage && !isListing && <Footer />}
       <CartDrawer />
+      <CookieConsent />
     </>
   );
 }

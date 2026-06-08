@@ -5,8 +5,9 @@ import { sendSuccess, sendError } from '../utils/apiResponse';
 
 export const getCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { includeInactive } = req.query;
-    const filter = includeInactive === 'true' ? {} : { isActive: true };
+    const { includeInactive, productType } = req.query as Record<string, string>;
+    const filter: Record<string, unknown> = includeInactive === 'true' ? {} : { isActive: true };
+    if (productType) filter.productType = productType;
     const categories = await Category.find(filter).sort('sortOrder name').lean();
     sendSuccess(res, 'Categories fetched', categories);
   } catch (err) {

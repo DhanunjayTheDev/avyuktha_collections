@@ -4,13 +4,11 @@ import { IProduct } from '../types';
 
 const variantSchema = new Schema(
   {
-    color: String,
-    size: String,
-    fabric: String,
-    pattern: String,
     sku: { type: String, required: true },
     stock: { type: Number, required: true, min: 0, default: 0 },
     images: [String],
+    // Variant-level attribute values (slug -> single value), e.g. { size: 'M', color: 'Red' }
+    attributes: { type: Map, of: String, default: {} },
   },
   { _id: true }
 );
@@ -21,9 +19,13 @@ const productSchema = new Schema<IProduct>(
     slug: { type: String, unique: true },
     description: { type: String, required: true },
     shortDescription: { type: String, required: true },
+    productType: { type: String, default: 'clothing', index: true }, // ProductType slug (admin-defined)
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     subcategory: String,
     collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
+    // Product-level attribute values (slug -> values array), admin-defined
+    attributes: { type: Map, of: [String], default: {} },
+    weightGrams: Number, // dedicated numeric field (range-filterable)
     mrp: { type: Number, required: true, min: 0 },
     salePrice: { type: Number, required: true, min: 0 },
     discountPercentage: { type: Number, default: 0 },
@@ -58,7 +60,12 @@ productSchema.pre('save', function (next) {
 });
 
 productSchema.index({ category: 1 });
+productSchema.index({ productType: 1, isActive: 1 });
 productSchema.index({ collections: 1 });
+// Wildcard index for dynamic attribute filtering (attributes.<slug>)
+productSchema.index({ 'attributes.$**': 1 });
+// Hard uniqueness guarantee for variant SKUs across the whole catalog
+productSchema.index({ 'variants.sku': 1 }, { unique: true });
 productSchema.index({ isActive: 1, isFeatured: 1 });
 productSchema.index({ isActive: 1, isNewArrival: 1 });
 productSchema.index({ isActive: 1, isBestSeller: 1 });

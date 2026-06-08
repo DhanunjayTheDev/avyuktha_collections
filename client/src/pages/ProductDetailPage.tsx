@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ShoppingBag, Truck, RotateCcw, Shield, Star, ChevronLeft, ChevronRight, ZoomIn, Minus, Plus } from 'lucide-react';
@@ -7,8 +7,10 @@ import ProductRow from '../components/home/ProductRow';
 import Spinner from '../components/common/Spinner';
 import { productApi } from '../api/product.api';
 import { reviewApi } from '../api/misc.api';
-import type { Product, ProductVariant, Review } from '../types';
+import type { Product, ProductVariant, Review, Attribute } from '../types';
 import { formatPrice, formatDate } from '../utils/format';
+import { colorLabel } from '../utils/colorName';
+import { socket, SOCKET_EVENTS } from '../lib/socket';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { useWishlistStore } from '../stores/wishlistStore';
@@ -23,6 +25,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [imgIdx, setImgIdx] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selection, setSelection] = useState<Record<string, string>>({});
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<'description' | 'reviews' | 'shipping'>('description');
   const [zoom, setZoom] = useState(false);
@@ -42,8 +46,35 @@ export default function ProductDetailPage() {
       setProduct(p);
       setRelated(rel.data.data || []);
       setSelectedVariant(p.variants[0] || null);
+      setSelection({ ...(p.variants[0]?.attributes || {}) });
     }).catch(() => navigate('/products')).finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    productApi.getAttributes().then(({ data }) => setAttributes(data.data || [])).catch(() => {});
+  }, []);
+
+  // Re-fetch product (preserving selected variant) on real-time changes
+  const reload = useCallback(() => {
+    if (!slug) return;
+    productApi.getProductBySlug(slug).then(({ data }) => {
+      const p: Product = data.data;
+      setProduct(p);
+      setSelectedVariant((prev) => p.variants.find((v) => v.sku === prev?.sku) || p.variants[0] || null);
+    }).catch(() => {});
+  }, [slug]);
+
+  useEffect(() => {
+    if (!product?._id) return;
+    const onStock = (pl: { productId: string }) => { if (pl.productId === product._id) reload(); };
+    const onUpd = (pl: { slug: string }) => { if (pl.slug === product.slug) reload(); };
+    socket.on(SOCKET_EVENTS.stockUpdated, onStock);
+    socket.on(SOCKET_EVENTS.productUpdated, onUpd);
+    return () => {
+      socket.off(SOCKET_EVENTS.stockUpdated, onStock);
+      socket.off(SOCKET_EVENTS.productUpdated, onUpd);
+    };
+  }, [product?._id, product?.slug, reload]);
 
   useEffect(() => {
     if (product?._id) {
@@ -58,8 +89,20 @@ export default function ProductDetailPage() {
   const hasStock = selectedVariant ? selectedVariant.stock > 0 : false;
   const wishlisted = isWishlisted(product._id);
 
-  const uniqueSizes = [...new Set(product.variants.map((v) => v.size).filter(Boolean))];
-  const uniqueColors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+  // Dynamic variant attributes — derived from the product's own variants
+  const attrBySlug: Record<string, Attribute> = Object.fromEntries(attributes.map((a) => [a.slug, a]));
+  const variantSlugs = Array.from(new Set(product.variants.flatMap((v) => Object.keys(v.attributes || {}))))
+    .sort((a, b) => (attrBySlug[a]?.sortOrder ?? 99) - (attrBySlug[b]?.sortOrder ?? 99));
+  const valuesFor = (slug: string) =>
+    Array.from(new Set(product.variants.map((v) => v.attributes?.[slug]).filter(Boolean))) as string[];
+
+  const chooseAttr = (slug: string, value: string) => {
+    const next = { ...selection, [slug]: value };
+    setSelection(next);
+    const match = product.variants.find((v) => Object.entries(next).every(([s, val]) => v.attributes?.[s] === val))
+      || product.variants.find((v) => v.attributes?.[slug] === value);
+    if (match) setSelectedVariant(match);
+  };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) { navigate('/auth/login'); return; }
@@ -166,66 +209,72 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Colors */}
-            {uniqueColors.length > 0 && (
-              <div className="mb-5">
-                <p className="input-label">
-                  Color: <span className="text-brand-muted font-normal">{selectedVariant?.color}</span>
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {uniqueColors.map((color) => {
-                    const v = product.variants.find((va) => va.color === color);
-                    return (
-                      <button
-                        key={color}
-                        onClick={() => v && setSelectedVariant(v)}
-                        className={`px-4 py-2 font-body text-sm border-2 transition-colors ${
-                          selectedVariant?.color === color
-                            ? 'border-primary bg-primary/5 text-primary'
-                            : 'border-brand-border hover:border-primary/50'
-                        } ${v && v.stock === 0 ? 'opacity-40 line-through' : ''}`}
-                      >
-                        {color}
-                      </button>
-                    );
-                  })}
+            {/* Dynamic variant attribute selectors (Size, Colour, etc.) */}
+            {variantSlugs.map((slug) => {
+              const attr = attrBySlug[slug];
+              const isColor = attr?.inputType === 'color';
+              const opts = valuesFor(slug);
+              if (!opts.length) return null;
+              return (
+                <div className="mb-5" key={slug}>
+                  <p className="input-label">
+                    {attr?.name || slug}: <span className="text-brand-muted font-normal">{isColor ? colorLabel(selection[slug]) : selection[slug]}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {opts.map((val) => {
+                      const active = selection[slug] === val;
+                      const optVariant = product.variants.find((v) => v.attributes?.[slug] === val);
+                      const oos = optVariant && optVariant.stock === 0;
+                      if (isColor) {
+                        const hex = attr?.options.find((o) => o.value === val)?.hex
+                          || (/^#[0-9a-fA-F]{6}$/.test(val) ? val : undefined);
+                        return (
+                          <button key={val} onClick={() => chooseAttr(slug, val)} title={val}
+                            className={`w-9 h-9 rounded-full border-2 transition-all ${active ? 'border-primary scale-110' : 'border-brand-border hover:border-primary/50'} ${oos ? 'opacity-40' : ''}`}
+                            style={{ background: hex || '#ccc' }} />
+                        );
+                      }
+                      return (
+                        <button key={val} onClick={() => chooseAttr(slug, val)}
+                          className={`px-4 py-2 font-body text-sm border-2 transition-colors ${active ? 'border-primary bg-primary/5 text-primary' : 'border-brand-border hover:border-primary/50'} ${oos ? 'opacity-40 line-through' : ''}`}>
+                          {val}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
 
-            {/* Sizes */}
-            {uniqueSizes.length > 0 && (
-              <div className="mb-6">
-                <p className="input-label">
-                  Size: <span className="text-brand-muted font-normal">{selectedVariant?.size}</span>
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {uniqueSizes.map((size) => {
-                    const v = product.variants.find((va) => va.size === size && va.color === selectedVariant?.color) ||
-                              product.variants.find((va) => va.size === size);
-                    return (
-                      <button
-                        key={size}
-                        onClick={() => v && setSelectedVariant(v)}
-                        className={`w-12 h-12 font-body text-sm border-2 transition-colors ${
-                          selectedVariant?.size === size
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-brand-border hover:border-primary/50'
-                        } ${v && v.stock === 0 ? 'opacity-40 line-through' : ''}`}
-                      >
-                        {size}
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* Stock status */}
+            {selectedVariant && (
+              <div className="mb-4">
+                {selectedVariant.stock <= 0 ? (
+                  <span className="inline-flex items-center gap-1.5 font-body text-sm font-semibold text-red-600">
+                    <span className="w-2 h-2 rounded-full bg-red-500" /> Out of stock
+                  </span>
+                ) : selectedVariant.stock < 10 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200"
+                  >
+                    <motion.span
+                      className="w-2 h-2 rounded-full bg-orange-500"
+                      animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                    <span className="font-body text-sm font-semibold text-orange-700">
+                      Hurry! Only {selectedVariant.stock} left in stock
+                    </span>
+                  </motion.div>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-body text-sm font-medium text-green-600">
+                    <span className="w-2 h-2 rounded-full bg-green-500" /> In stock
+                    <span className="text-brand-muted font-normal">({selectedVariant.stock} available)</span>
+                  </span>
+                )}
               </div>
-            )}
-
-            {/* Stock warning */}
-            {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
-              <p className="font-body text-sm text-orange-600 mb-4">
-                Only {selectedVariant.stock} left in stock!
-              </p>
             )}
 
             {/* Qty + CTA */}
@@ -288,8 +337,13 @@ export default function ProductDetailPage() {
                 {tab === 'description' && (
                   <div className="font-body text-sm text-brand-muted leading-relaxed space-y-3">
                     <p>{product.description}</p>
-                    {product.variants[0]?.fabric && <p><strong>Fabric:</strong> {product.variants[0].fabric}</p>}
-                    {product.variants[0]?.pattern && <p><strong>Pattern:</strong> {product.variants[0].pattern}</p>}
+                    {/* Product-level attribute specs (admin-defined) */}
+                    {Object.entries(product.attributes || {}).map(([slug, vals]) =>
+                      vals?.length ? (
+                        <p key={slug}><strong>{attrBySlug[slug]?.name || slug}:</strong> {vals.join(', ')}</p>
+                      ) : null
+                    )}
+                    {product.weightGrams != null && <p><strong>Weight:</strong> {product.weightGrams} g</p>}
                   </div>
                 )}
                 {tab === 'reviews' && (

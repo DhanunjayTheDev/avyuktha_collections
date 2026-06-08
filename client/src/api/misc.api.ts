@@ -37,6 +37,10 @@ export const couponApi = {
     client.post('/coupons/apply', { code, cartTotal }),
 };
 
+export const cmsApi = {
+  getPage: (key: string) => client.get(`/cms/${key}`),
+};
+
 export const returnApi = {
   createReturn: (data: {
     orderId: string;

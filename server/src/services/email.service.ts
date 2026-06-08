@@ -2,10 +2,10 @@ import nodemailer from 'nodemailer';
 import logger from '../utils/logger';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure: false,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587/STARTTLS
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 });
 
 const from = process.env.EMAIL_FROM || 'Avyuktha Fashions <no-reply@avyukthafashions.com>';

@@ -13,7 +13,7 @@ interface AuthState {
   fetchMe: () => Promise<void>;
 }
 
-const ADMIN_ROLES = ['super_admin', 'admin', 'manager', 'content_editor', 'support_executive'];
+const ADMIN_ROLES = ['admin'];
 
 export const useAuthStore = create<AuthState>()(
   persist(

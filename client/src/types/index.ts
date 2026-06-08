@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role: 'customer' | 'super_admin' | 'admin' | 'manager' | 'content_editor' | 'support_executive';
+  role: 'customer' | 'admin';
   avatar?: string;
   isEmailVerified: boolean;
   addresses: Address[];
@@ -26,13 +26,39 @@ export interface Address {
 
 export interface ProductVariant {
   _id?: string;
-  color?: string;
-  size?: string;
-  fabric?: string;
-  pattern?: string;
   sku: string;
   stock: number;
   images?: string[];
+  attributes?: Record<string, string>; // variant-level (slug -> value)
+}
+
+export interface ProductType {
+  _id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface AttributeOption {
+  label: string;
+  value: string;
+  hex?: string;
+  sortOrder: number;
+}
+
+export interface Attribute {
+  _id: string;
+  name: string;
+  slug: string;
+  level: 'product' | 'variant';
+  inputType: 'select' | 'multiselect' | 'chips' | 'color';
+  options: AttributeOption[];
+  productTypes: string[];
+  isFilterable: boolean;
+  isActive: boolean;
+  sortOrder: number;
 }
 
 export interface Product {
@@ -41,8 +67,11 @@ export interface Product {
   slug: string;
   description: string;
   shortDescription: string;
+  productType: string;
   category: { _id: string; name: string; slug: string };
   collections: { _id: string; name: string; slug: string }[];
+  attributes?: Record<string, string[]>; // product-level (slug -> values)
+  weightGrams?: number;
   mrp: number;
   salePrice: number;
   discountPercentage: number;
@@ -65,6 +94,7 @@ export interface Category {
   _id: string;
   name: string;
   slug: string;
+  productType?: string;
   description?: string;
   image?: string;
   parent?: string;
@@ -189,4 +219,9 @@ export interface ProductFilters {
   isNewArrival?: boolean;
   isBestSeller?: boolean;
   isTrending?: boolean;
+  productType?: string;
+  minWeight?: number;
+  maxWeight?: number;
+  // dynamic attribute params (slug -> comma-separated values)
+  [key: string]: string | number | boolean | undefined;
 }

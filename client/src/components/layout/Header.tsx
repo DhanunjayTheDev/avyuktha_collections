@@ -6,42 +6,16 @@ import { useAuthStore } from '../../stores/authStore';
 import { useCartStore, selectItemCount } from '../../stores/cartStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useUiStore } from '../../stores/uiStore';
+import { useCategories, useCollections, useProductTypes } from '../../hooks/useCatalog';
 import AnnouncementBar from '../common/AnnouncementBar';
 
-const NAV = [
-  {
-    label: 'Ethnic Wear',
-    href: '/products?category=sarees',
-    sub: [
-      { label: 'Sarees', href: '/products?category=sarees' },
-      { label: 'Silk Sarees', href: '/products?category=silk-sarees' },
-      { label: 'Cotton Sarees', href: '/products?category=cotton-sarees' },
-      { label: 'Designer Sarees', href: '/products?category=designer-sarees' },
-      { label: 'Kurtis', href: '/products?category=kurtis' },
-      { label: 'Kurta Sets', href: '/products?category=kurta-sets' },
-      { label: 'Lehengas', href: '/products?category=lehengas' },
-      { label: 'Salwar Suits', href: '/products?category=salwar-suits' },
-    ],
-  },
-  {
-    label: 'Western Wear',
-    href: '/products?category=tops',
-    sub: [
-      { label: 'Tops', href: '/products?category=tops' },
-      { label: 'Dresses', href: '/products?category=dresses' },
-      { label: 'Jeans & Trousers', href: '/products?category=jeans-trousers' },
-      { label: 'Co-Ord Sets', href: '/products?category=co-ord-sets' },
-    ],
-  },
-  { label: 'New Arrivals', href: '/products?isNewArrival=true' },
-  { label: 'Collections', href: '/collections' },
-  { label: 'Sale', href: '/products?sort=-discountPercentage', badge: 'SALE' },
-  { label: 'Blog', href: '/blogs' },
-];
+interface NavSub { label: string; href: string }
+interface NavItem { label: string; href: string; sub?: NavSub[]; badge?: string }
 
 export default function Header({ isCheckout = false }: { isCheckout?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [expandedNav, setExpandedNav] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,6 +25,30 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
   const { products: wishlistProducts } = useWishlistStore();
   const { isMobileMenuOpen, isSearchOpen, openMobileMenu, closeMobileMenu, openSearch, closeSearch } = useUiStore();
   const searchRef = useRef<HTMLInputElement>(null);
+  // Cached catalog data (shared/deduped via React Query)
+  const productTypes = useProductTypes().data || [];
+  const categories = useCategories().data || [];
+  const collections = useCollections().data || [];
+
+  // Build the nav from live catalog data (product types = main links,
+  // categories + collections = sub-links).
+  const NAV: NavItem[] = [
+    ...productTypes.map((t) => ({
+      label: t.name,
+      href: `/products?productType=${t.slug}`,
+      sub: categories
+        .filter((c) => c.productType === t.slug)
+        .map((c) => ({ label: c.name, href: `/products?productType=${t.slug}&category=${c.slug}` })),
+    })),
+    { label: 'New Arrivals', href: '/products?isNewArrival=true' },
+    {
+      label: 'Collections',
+      href: '/collections',
+      sub: collections.map((c) => ({ label: c.name, href: `/products?collection=${c.slug}` })),
+    },
+    { label: 'Sale', href: '/products?sort=-discountPercentage', badge: 'SALE' },
+    { label: 'Blog', href: '/blogs' },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -117,7 +115,7 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
                 <div
                   key={item.label}
                   className="relative group"
-                  onMouseEnter={() => item.sub && setHoveredNav(item.label)}
+                  onMouseEnter={() => item.sub?.length && setHoveredNav(item.label)}
                   onMouseLeave={() => setHoveredNav(null)}
                 >
                   <Link
@@ -133,10 +131,10 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
                     ) : (
                       item.label
                     )}
-                    {item.sub && <ChevronDown size={14} />}
+                    {!!item.sub?.length && <ChevronDown size={14} />}
                   </Link>
 
-                  {item.sub && (
+                  {!!item.sub?.length && (
                     <AnimatePresence>
                       {hoveredNav === item.label && (
                         <motion.div
@@ -146,7 +144,7 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
                           transition={{ duration: 0.2 }}
                           className="absolute top-full left-0 mt-2 w-48 bg-brand-bg border border-brand-border shadow-xl py-2 z-50"
                         >
-                          {item.sub.map((sub) => (
+                          {item.sub?.map((sub) => (
                             <Link
                               key={typeof sub === 'string' ? sub : sub.label}
                               to={typeof sub === 'string' ? `/products?search=${sub}` : sub.href}
@@ -282,31 +280,62 @@ export default function Header({ isCheckout = false }: { isCheckout?: boolean })
                 <X size={24} />
               </button>
             </div>
-            <nav className="p-5 space-y-1">
-              {NAV.map((item) => (
-                <div key={item.label}>
+            <nav className="p-5">
+              {NAV.map((item) => {
+                const expanded = expandedNav === item.label;
+                // Items with a submenu: tap to expand the accordion (no navigation).
+                if (item.sub?.length) {
+                  return (
+                    <div key={item.label} className="border-b border-brand-border/50">
+                      <button
+                        onClick={() => setExpandedNav(expanded ? null : item.label)}
+                        className="w-full flex items-center justify-between py-3.5 font-body text-base text-brand-text hover:text-primary transition-colors"
+                      >
+                        {item.label}
+                        <ChevronDown
+                          size={18}
+                          className={`text-brand-muted transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {expanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pl-4 pb-2 space-y-0.5">
+                              {item.sub?.map((sub) => (
+                                <Link
+                                  key={typeof sub === 'string' ? sub : sub.label}
+                                  to={typeof sub === 'string' ? `/products?search=${sub}` : sub.href}
+                                  className="block py-2 font-body text-sm text-brand-muted hover:text-primary transition-colors"
+                                  onClick={closeMobileMenu}
+                                >
+                                  {typeof sub === 'string' ? sub : sub.label}
+                                </Link>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
+                // Items without a submenu: direct link.
+                return (
                   <Link
+                    key={item.label}
                     to={item.href}
-                    className="block py-3 font-body text-base text-brand-text hover:text-primary border-b border-brand-border/50 transition-colors"
+                    onClick={closeMobileMenu}
+                    className="block py-3.5 font-body text-base text-brand-text hover:text-primary border-b border-brand-border/50 transition-colors"
                   >
                     {item.label}
                   </Link>
-                  {item.sub && (
-                    <div className="pl-4 mt-1 space-y-1">
-                      {item.sub.map((sub) => (
-                        <Link
-                          key={typeof sub === 'string' ? sub : sub.label}
-                          to={typeof sub === 'string' ? `/products?search=${sub}` : sub.href}
-                          className="block py-2 font-body text-sm text-brand-muted hover:text-primary transition-colors"
-                          onClick={closeMobileMenu}
-                        >
-                          {typeof sub === 'string' ? sub : sub.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </nav>
             <div className="p-5 space-y-3 border-t border-brand-border">
               {isAuthenticated ? (

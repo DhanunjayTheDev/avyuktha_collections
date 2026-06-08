@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { CheckCircle2, Trash2, Star, MessageSquare } from 'lucide-react';
 import { reviewApi } from '../../api';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import type { Review } from '../../types';
 import { formatDate } from '../../utils/format';
 import toast from 'react-hot-toast';
@@ -9,6 +10,7 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
+  const confirm = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -23,7 +25,7 @@ export default function ReviewsPage() {
     await reviewApi.approve(id).then(() => { toast.success('Review approved'); load(); }).catch(() => {});
   };
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this review?')) return;
+    if (!(await confirm({ title: 'Delete review?', message: 'This permanently removes the review.' }))) return;
     await reviewApi.delete(id).then(() => { toast.success('Deleted'); load(); }).catch(() => {});
   };
 

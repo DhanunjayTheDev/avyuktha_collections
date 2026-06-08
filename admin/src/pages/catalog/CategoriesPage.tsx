@@ -1,44 +1,46 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import Modal from '../../components/common/Modal';
+import Select from '../../components/common/Select';
+import { useConfirm } from '../../components/common/ConfirmDialog';
+import { useCategories, useProductTypes, CATALOG_KEYS } from '../../hooks/useCatalog';
 import { categoryApi } from '../../api';
 import type { Category } from '../../types';
 import toast from 'react-hot-toast';
 
-const empty = { name: '', description: '', isActive: true, sortOrder: 0 };
+const empty = { name: '', productType: '', description: '', isActive: true, sortOrder: 0 };
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: categories = [], isLoading: loading } = useCategories();
+  const productTypes = (useProductTypes().data || []).filter((t) => t.isActive);
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: CATALOG_KEYS.categories });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
-
-  const fetch = async () => {
-    setLoading(true);
-    categoryApi.getAll().then(({ data }) => setCategories(data.data || [])).catch(() => {}).finally(() => setLoading(false));
-  };
-  useEffect(() => { fetch(); }, []);
+  const confirm = useConfirm();
 
   const openNew = () => { setEditing(null); setForm(empty); setModal(true); };
   const openEdit = (c: Category) => {
     setEditing(c);
-    setForm({ name: c.name, description: c.description || '', isActive: c.isActive, sortOrder: c.sortOrder });
+    setForm({ name: c.name, productType: c.productType || '', description: c.description || '', isActive: c.isActive, sortOrder: c.sortOrder });
     setModal(true);
   };
   const handleDelete = async (id: string) => {
-    if (!confirm('Deactivate this category?')) return;
-    await categoryApi.delete(id).then(() => { toast.success('Category deactivated'); fetch(); }).catch(() => {});
+    if (!(await confirm({ title: 'Deactivate category?', message: 'It will be hidden from the store.', confirmText: 'Deactivate' }))) return;
+    await categoryApi.delete(id).then(() => { toast.success('Category deactivated'); refresh(); }).catch(() => {});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.productType) { toast.error('Select a product type'); return; }
     setSaving(true);
     try {
       if (editing) { await categoryApi.update(editing._id, form); toast.success('Category updated'); }
       else { await categoryApi.create(form); toast.success('Category created'); }
-      setModal(false); fetch();
+      setModal(false); refresh();
     } catch {} finally { setSaving(false); }
   };
 
@@ -166,6 +168,12 @@ export default function CategoriesPage() {
           <div>
             <label className="input-label">Name *</label>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" placeholder="e.g. Silk Sarees" required />
+          </div>
+          <div>
+            <label className="input-label">Product Type *</label>
+            <Select value={form.productType} onChange={(v) => setForm({ ...form, productType: v })}
+              placeholder="— Select type —"
+              options={productTypes.map((t) => ({ value: t.slug, label: t.name }))} />
           </div>
           <div>
             <label className="input-label">Description</label>

@@ -2,7 +2,7 @@ export interface AdminUser {
   _id: string;
   name: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'manager' | 'content_editor' | 'support_executive';
+  role: 'customer' | 'admin';
   avatar?: string;
   isActive: boolean;
 }
@@ -22,6 +22,7 @@ export interface Product {
   slug: string;
   shortDescription: string;
   description: string;
+  productType: string; // ProductType slug
   category: { _id: string; name: string };
   collections: { _id: string; name: string }[];
   mrp: number;
@@ -29,6 +30,8 @@ export interface Product {
   discountPercentage: number;
   variants: ProductVariant[];
   images: string[];
+  attributes?: Record<string, string[]>; // product-level attribute values
+  weightGrams?: number;
   tags: string[];
   isFeatured: boolean;
   isNewArrival: boolean;
@@ -41,19 +44,46 @@ export interface Product {
 
 export interface ProductVariant {
   _id?: string;
-  color?: string;
-  size?: string;
-  fabric?: string;
-  pattern?: string;
   sku: string;
   stock: number;
   images?: string[];
+  attributes?: Record<string, string>; // variant-level attribute values
+}
+
+export interface ProductType {
+  _id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface AttributeOption {
+  label: string;
+  value: string;
+  hex?: string;
+  sortOrder: number;
+}
+
+export interface Attribute {
+  _id: string;
+  name: string;
+  slug: string;
+  level: 'product' | 'variant';
+  inputType: 'select' | 'multiselect' | 'chips' | 'color';
+  options: AttributeOption[];
+  productTypes: string[];
+  isFilterable: boolean;
+  isActive: boolean;
+  sortOrder: number;
 }
 
 export interface Category {
   _id: string;
   name: string;
   slug: string;
+  productType?: string;
   description?: string;
   image?: string;
   parent?: string;

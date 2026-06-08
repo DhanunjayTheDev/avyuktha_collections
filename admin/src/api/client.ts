@@ -8,6 +8,16 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Clear all auth state and send the user to the sign-in page.
+const forceLogout = () => {
+  localStorage.removeItem('adminAccessToken');
+  localStorage.removeItem('adminRefreshToken');
+  localStorage.removeItem('avyuktha-admin-auth'); // zustand persisted auth
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
+};
+
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('adminAccessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -18,9 +28,10 @@ client.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    if (err.response?.status === 401 && original && !original._retry) {
       original._retry = true;
       const refreshToken = localStorage.getItem('adminRefreshToken');
+      // Try a refresh only when we actually have a refresh token.
       if (refreshToken) {
         try {
           const { data } = await axios.post(`${API_BASE}/auth/refresh-token`, { refreshToken });
@@ -29,10 +40,10 @@ client.interceptors.response.use(
           original.headers.Authorization = `Bearer ${data.data.accessToken}`;
           return client(original);
         } catch {
-          localStorage.removeItem('adminAccessToken');
-          localStorage.removeItem('adminRefreshToken');
-          window.location.href = '/login';
+          forceLogout(); // refresh failed → token invalid/expired
         }
+      } else {
+        forceLogout(); // no token at all → straight to sign-in
       }
     }
     const message = err.response?.data?.message || 'Something went wrong';

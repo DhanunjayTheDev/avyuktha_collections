@@ -22,11 +22,7 @@ const COLORS: Record<string, string> = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-yellow-100 text-yellow-700',
   low: 'bg-green-100 text-green-700',
-  super_admin: 'bg-purple-100 text-purple-700',
   admin: 'bg-blue-100 text-blue-700',
-  manager: 'bg-indigo-100 text-indigo-700',
-  content_editor: 'bg-teal-100 text-teal-700',
-  support_executive: 'bg-orange-100 text-orange-700',
   customer: 'bg-gray-100 text-gray-600',
 };
 

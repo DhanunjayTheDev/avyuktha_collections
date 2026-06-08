@@ -26,7 +26,7 @@ const userSchema = new Schema<IUser>(
     password: { type: String, required: true, minlength: 8, select: false },
     role: {
       type: String,
-      enum: ['customer', 'super_admin', 'admin', 'manager', 'content_editor', 'support_executive'],
+      enum: ['customer', 'admin'],
       default: 'customer',
     },
     isEmailVerified: { type: Boolean, default: false },

@@ -37,6 +37,8 @@ export const restrictTo = (...roles: UserRole[]) =>
     next();
   };
 
-export const isAdmin = restrictTo('super_admin', 'admin', 'manager', 'content_editor', 'support_executive');
-export const isSuperAdmin = restrictTo('super_admin');
-export const isAdminOrManager = restrictTo('super_admin', 'admin', 'manager');
+// Single staff role: 'admin' has full control. Aliases kept so existing route
+// imports keep working without churn.
+export const isAdmin = restrictTo('admin');
+export const isSuperAdmin = restrictTo('admin');
+export const isAdminOrManager = restrictTo('admin');

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import Badge from '../../components/common/Badge';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { productApi } from '../../api';
 import type { Product, Pagination } from '../../types';
 import { formatPrice, formatDate } from '../../utils/format';
@@ -14,6 +15,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const confirm = useConfirm();
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -27,7 +29,7 @@ export default function ProductsPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Deactivate "${name}"?`)) return;
+    if (!(await confirm({ title: 'Deactivate product?', message: `"${name}" will be hidden and its images removed from storage.`, confirmText: 'Deactivate' }))) return;
     try {
       await productApi.delete(id);
       toast.success('Product deactivated');

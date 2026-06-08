@@ -4,6 +4,7 @@ import Modal from '../../components/common/Modal';
 import Select from '../../components/common/Select';
 import Badge from '../../components/common/Badge';
 import { promotionApi } from '../../api';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { formatDate } from '../../utils/format';
 import toast from 'react-hot-toast';
 
@@ -29,6 +30,7 @@ export default function PromotionsPage() {
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const confirm = useConfirm();
 
   const fetch = async () => {
     setLoading(true);
@@ -85,7 +87,7 @@ export default function PromotionsPage() {
                   <td className="td">
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(p)} className="btn-ghost py-1 px-2"><Edit size={13} /></button>
-                      <button onClick={async () => { if (!confirm('Delete?')) return; await promotionApi.delete(p._id); toast.success('Deleted'); fetch(); }} className="btn-ghost py-1 px-2 !text-red-500 hover:!bg-red-50"><Trash2 size={13} /></button>
+                      <button onClick={async () => { if (!(await confirm({ title: 'Delete promotion?', message: 'This permanently removes the promotion.' }))) return; await promotionApi.delete(p._id); toast.success('Deleted'); fetch(); }} className="btn-ghost py-1 px-2 !text-red-500 hover:!bg-red-50"><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>

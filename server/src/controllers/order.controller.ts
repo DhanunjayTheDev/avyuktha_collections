@@ -5,6 +5,8 @@ import Product from '../models/Product';
 import Coupon from '../models/Coupon';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, getPagination } from '../utils/apiResponse';
+import { emitEvent, SOCKET_EVENTS } from '../config/socket';
+import { invalidateCache } from '../middleware/cache';
 import { createRazorpayOrder, verifyRazorpaySignature } from '../services/razorpay.service';
 import { createShiprocketOrder } from '../services/shiprocket.service';
 import { sendOrderConfirmationEmail } from '../services/email.service';
@@ -124,7 +126,9 @@ const confirmOrderFulfillment = async (order: InstanceType<typeof Order>, user: 
       { _id: item.product, 'variants.sku': item.variant.sku },
       { $inc: { 'variants.$.stock': -item.quantity } }
     );
+    emitEvent(SOCKET_EVENTS.stockUpdated, { productId: String(item.product), sku: item.variant.sku });
   }
+  void invalidateCache('/api/v1/products'); // stock changed → drop stale product cache
 
   if (order.coupon) {
     await Coupon.findByIdAndUpdate(order.coupon, { $inc: { usedCount: 1 } });

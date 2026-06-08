@@ -9,6 +9,16 @@ try {
   if (saved?.state?.isDark) document.documentElement.classList.add('dark');
 } catch {}
 
+// Stop number inputs from changing value on mouse wheel scroll
+document.addEventListener(
+  'wheel',
+  () => {
+    const el = document.activeElement as HTMLInputElement | null;
+    if (el && el.tagName === 'INPUT' && el.type === 'number') el.blur();
+  },
+  { passive: true }
+);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

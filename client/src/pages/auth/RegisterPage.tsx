@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,15 +163,20 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="font-body text-xs font-semibold text-brand-muted uppercase tracking-wider block mb-1.5">Confirm Password *</label>
-                  <input
-                    type="password"
-                    value={form.confirmPassword}
-                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3 bg-brand-surface border text-brand-text text-sm outline-none focus:bg-white transition-all duration-200 placeholder:text-brand-muted/60 ${form.confirmPassword && form.password !== form.confirmPassword ? 'border-red-400 focus:border-red-400' : 'border-brand-border focus:border-primary'}`}
-                    placeholder="Re-enter password"
-                    required
-                    autoComplete="new-password"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? 'text' : 'password'}
+                      value={form.confirmPassword}
+                      onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                      className={`w-full px-4 py-3 bg-brand-surface border text-brand-text text-sm outline-none focus:bg-white transition-all duration-200 placeholder:text-brand-muted/60 pr-10 ${form.confirmPassword && form.password !== form.confirmPassword ? 'border-red-400 focus:border-red-400' : 'border-brand-border focus:border-primary'}`}
+                      placeholder="Re-enter password"
+                      required
+                      autoComplete="new-password"
+                    />
+                    <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-primary transition-colors">
+                      {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                   {form.confirmPassword && form.password !== form.confirmPassword && (
                     <p className="font-body text-xs text-red-500 mt-1">Passwords don't match</p>
                   )}

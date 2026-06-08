@@ -6,13 +6,11 @@ const orderItemSchema = new Schema(
   {
     product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     variant: {
-      color: String,
-      size: String,
-      fabric: String,
-      pattern: String,
       sku: { type: String, required: true },
       stock: Number,
       images: [String],
+      // Variant attribute snapshot (slug -> value) at time of order
+      attributes: { type: Map, of: String, default: {} },
     },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true },

@@ -1,6 +1,9 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2, Layers, Star } from 'lucide-react';
 import Modal from '../../components/common/Modal';
+import { useConfirm } from '../../components/common/ConfirmDialog';
+import { useCollections, CATALOG_KEYS } from '../../hooks/useCatalog';
 import { collectionApi } from '../../api';
 import type { Collection } from '../../types';
 import toast from 'react-hot-toast';
@@ -21,18 +24,14 @@ function ActionBtn({ onClick, variant }: { onClick: () => void; variant: 'edit' 
 }
 
 export default function CollectionsPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: collections = [], isLoading: loading } = useCollections();
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: CATALOG_KEYS.collections });
+  const confirm = useConfirm();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Collection | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
-
-  const load = async () => {
-    setLoading(true);
-    collectionApi.getAll().then(({ data }) => setCollections(data.data || [])).catch(() => {}).finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
 
   const openNew = () => { setEditing(null); setForm(empty); setModal(true); };
   const openEdit = (c: Collection) => { setEditing(c); setForm({ name: c.name, description: c.description || '', isActive: c.isActive, isFeatured: c.isFeatured, sortOrder: c.sortOrder }); setModal(true); };
@@ -42,7 +41,7 @@ export default function CollectionsPage() {
     try {
       if (editing) { await collectionApi.update(editing._id, form); toast.success('Collection updated'); }
       else { await collectionApi.create(form); toast.success('Collection created'); }
-      setModal(false); load();
+      setModal(false); refresh();
     } catch {} finally { setSaving(false); }
   };
 
@@ -104,7 +103,7 @@ export default function CollectionsPage() {
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <ActionBtn onClick={() => openEdit(c)} variant="edit" />
-                      <ActionBtn onClick={() => collectionApi.delete(c._id).then(() => { toast.success('Deleted'); load(); })} variant="delete" />
+                      <ActionBtn onClick={async () => { if (!(await confirm({ title: 'Deactivate collection?', message: 'It will be hidden from the store.', confirmText: 'Deactivate' }))) return; await collectionApi.delete(c._id); toast.success('Deleted'); refresh(); }} variant="delete" />
                     </div>
                   </td>
                 </tr>

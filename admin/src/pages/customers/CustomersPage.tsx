@@ -7,15 +7,11 @@ import type { Customer, Pagination } from '../../types';
 import { formatDate } from '../../utils/format';
 import toast from 'react-hot-toast';
 
-const ROLES = ['customer', 'super_admin', 'admin', 'manager', 'content_editor', 'support_executive'];
+const ROLES = ['customer', 'admin'];
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  customer:          { bg: '#F1F5F9', text: '#475569' },
-  super_admin:       { bg: '#EDE9FE', text: '#5B21B6' },
-  admin:             { bg: '#EEF2FF', text: '#3730A3' },
-  manager:           { bg: '#DBEAFE', text: '#1E40AF' },
-  content_editor:    { bg: '#DCFCE7', text: '#166534' },
-  support_executive: { bg: '#FFEDD5', text: '#9A3412' },
+  customer: { bg: '#F1F5F9', text: '#475569' },
+  admin:    { bg: '#EEF2FF', text: '#3730A3' },
 };
 
 function Avatar({ name, email }: { name: string; email: string }) {

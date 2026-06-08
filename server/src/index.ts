@@ -1,14 +1,20 @@
 import 'dotenv/config';
+import http from 'http';
 import app from './app';
 import connectDB from './config/db';
+import { initSocket } from './config/socket';
 import { verifyEmailConnection } from './services/email.service';
 import logger from './utils/logger';
 
 const PORT = Number(process.env.PORT) || 5000;
 
+// Wrap Express in an HTTP server so Socket.IO can share the same port.
+const server = http.createServer(app);
+initSocket(server);
+
 // Open the port FIRST so the platform (Cloud Run) sees a listening
 // container immediately. Connect to external services afterwards.
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} [${process.env.NODE_ENV}]`);
 });
 

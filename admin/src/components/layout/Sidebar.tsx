@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, Tag, Layers, ShoppingCart, Users,
   Ticket, Megaphone, Zap, FileText, Mail, Headphones,
   RotateCcw, FileEdit, BarChart2, ScrollText,
-  Star, LogOut, Settings, X,
+  Star, LogOut, Settings, X, Shapes, SlidersHorizontal,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
@@ -16,6 +16,8 @@ export const NAV_ITEMS = [
   ]},
   { section: 'Catalog', items: [
     { label: 'Products', href: '/products', icon: Package },
+    { label: 'Product Types', href: '/product-types', icon: Shapes },
+    { label: 'Attributes', href: '/attributes', icon: SlidersHorizontal },
     { label: 'Categories', href: '/categories', icon: Tag },
     { label: 'Collections', href: '/collections', icon: Layers },
   ]},

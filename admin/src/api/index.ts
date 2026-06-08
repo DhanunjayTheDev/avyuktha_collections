@@ -19,6 +19,7 @@ export const productApi = {
   update: (id: string, data: object) => client.patch(`/products/${id}`, data),
   delete: (id: string) => client.delete(`/products/${id}`),
   uploadImages: (files: FormData) => client.post('/products/upload/images', files, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteImage: (url: string) => client.delete('/products/upload/image', { data: { url } }),
 };
 
 export const categoryApi = {
@@ -33,6 +34,20 @@ export const collectionApi = {
   create: (data: object) => client.post('/catalog/collections', data),
   update: (id: string, data: object) => client.patch(`/catalog/collections/${id}`, data),
   delete: (id: string) => client.delete(`/catalog/collections/${id}`),
+};
+
+export const productTypeApi = {
+  getAll: () => client.get('/catalog/product-types', { params: { includeInactive: true } }),
+  create: (data: object) => client.post('/catalog/product-types', data),
+  update: (id: string, data: object) => client.patch(`/catalog/product-types/${id}`, data),
+  delete: (id: string) => client.delete(`/catalog/product-types/${id}`),
+};
+
+export const attributeApi = {
+  getAll: () => client.get('/catalog/attributes', { params: { includeInactive: true } }),
+  create: (data: object) => client.post('/catalog/attributes', data),
+  update: (id: string, data: object) => client.patch(`/catalog/attributes/${id}`, data),
+  delete: (id: string) => client.delete(`/catalog/attributes/${id}`),
 };
 
 export const orderApi = {

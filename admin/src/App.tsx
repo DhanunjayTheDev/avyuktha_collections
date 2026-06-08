@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AdminLayout from './components/layout/AdminLayout';
 import { PageSpinner } from './components/common/Spinner';
+import { ConfirmProvider } from './components/common/ConfirmDialog';
 import { useAuthStore } from './stores/authStore';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -16,6 +17,8 @@ const OrdersPage = lazy(() => import('./pages/orders/OrdersPage'));
 const OrderDetailPage = lazy(() => import('./pages/orders/OrderDetailPage'));
 const CategoriesPage = lazy(() => import('./pages/catalog/CategoriesPage'));
 const CollectionsPage = lazy(() => import('./pages/catalog/CollectionsPage'));
+const ProductTypesPage = lazy(() => import('./pages/catalog/ProductTypesPage'));
+const AttributesPage = lazy(() => import('./pages/catalog/AttributesPage'));
 const CustomersPage = lazy(() => import('./pages/customers/CustomersPage'));
 const CouponsPage = lazy(() => import('./pages/coupons/CouponsPage'));
 const AnnouncementsPage = lazy(() => import('./pages/content/AnnouncementsPage'));
@@ -31,12 +34,14 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const hasToken = !!localStorage.getItem('adminAccessToken');
+  return isAuthenticated && hasToken ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ConfirmProvider>
       <BrowserRouter>
         <Suspense fallback={<PageSpinner />}>
           <Routes>
@@ -54,6 +59,8 @@ export default function App() {
               <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/collections" element={<CollectionsPage />} />
+              <Route path="/product-types" element={<ProductTypesPage />} />
+              <Route path="/attributes" element={<AttributesPage />} />
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/coupons" element={<CouponsPage />} />
               <Route path="/announcements" element={<AnnouncementsPage />} />
@@ -76,6 +83,7 @@ export default function App() {
           }}
         />
       </BrowserRouter>
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }

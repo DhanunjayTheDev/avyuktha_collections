@@ -21,7 +21,6 @@ const LINKS = {
     { label: 'About Us', href: '/cms/about' },
     { label: 'Blog', href: '/blogs' },
     { label: 'Contact Us', href: '/cms/contact' },
-    { label: 'Careers', href: '/cms/careers' },
   ],
   Policies: [
     { label: 'Privacy Policy', href: '/cms/privacy' },

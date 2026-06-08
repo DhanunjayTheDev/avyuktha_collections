@@ -7,7 +7,7 @@ export interface IUser extends Document {
   email: string;
   phone?: string;
   password: string;
-  role: 'customer' | 'super_admin' | 'admin' | 'manager' | 'content_editor' | 'support_executive';
+  role: 'customer' | 'admin';
   isEmailVerified: boolean;
   isActive: boolean;
   avatar?: string;
@@ -41,13 +41,11 @@ export interface AuthRequest extends Request {
 }
 
 export interface IProductVariant {
-  color?: string;
-  size?: string;
-  fabric?: string;
-  pattern?: string;
   sku: string;
   stock: number;
   images?: string[];
+  // Variant-level attribute values (slug -> single value), e.g. { size: 'M', color: 'Red' }
+  attributes?: Record<string, string>;
 }
 
 export interface IProduct extends Document {
@@ -56,9 +54,13 @@ export interface IProduct extends Document {
   slug: string;
   description: string;
   shortDescription: string;
+  productType: string; // ProductType slug (admin-defined)
   category: Types.ObjectId;
   subcategory?: string;
   collections: Types.ObjectId[];
+  // Product-level attribute values (slug -> values), e.g. { metal: ['1 Gram Gold'], occasion: ['Wedding'] }
+  attributes?: Record<string, string[]>;
+  weightGrams?: number; // dedicated numeric field (range-filterable)
   mrp: number;
   salePrice: number;
   discountPercentage: number;

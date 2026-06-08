@@ -14,6 +14,7 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const BlogListPage = lazy(() => import('./pages/BlogListPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
+const CmsPage = lazy(() => import('./pages/CmsPage'));
 const AccountPage = lazy(() => import('./pages/account/AccountPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="/products/:slug" element={<ProductDetailPage />} />
               <Route path="/collections" element={<ProductListPage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/cms/:key" element={<CmsPage />} />
               <Route path="/blogs" element={<BlogListPage />} />
               <Route path="/blogs/:slug" element={<BlogDetailPage />} />
               <Route

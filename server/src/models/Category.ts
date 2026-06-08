@@ -5,6 +5,7 @@ export interface ICategory extends Document {
   _id: Types.ObjectId;
   name: string;
   slug: string;
+  productType?: string; // ProductType slug this category belongs to
   description?: string;
   image?: string;
   parent?: Types.ObjectId;
@@ -20,6 +21,7 @@ const categorySchema = new Schema<ICategory>(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, unique: true },
+    productType: { type: String, index: true }, // ProductType slug
     description: String,
     image: String,
     parent: { type: Schema.Types.ObjectId, ref: 'Category', default: null },

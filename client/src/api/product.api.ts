@@ -14,6 +14,10 @@ export const productApi = {
   searchProducts: (q: string, page = 1, limit = 20) =>
     client.get('/products/search', { params: { q, page, limit } }),
 
+  getProductTypes: () => client.get('/catalog/product-types'),
+
+  getAttributes: () => client.get('/catalog/attributes', { params: { filterable: true } }),
+
   getCategories: () => client.get('/catalog/categories'),
 
   getCategoryBySlug: (slug: string) =>
