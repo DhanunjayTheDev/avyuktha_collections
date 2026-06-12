@@ -4,7 +4,7 @@ import Screen from '../src/components/Screen';
 import EmptyState from '../src/components/EmptyState';
 import { useAuth } from '../src/store/auth';
 import { useMyOrders } from '../src/api/orders';
-import { colors, fonts, radii, spacing } from '../src/theme';
+import { colors, fonts, radii, spacing, shadow } from '../src/theme';
 import { formatPrice } from '../src/utils/format';
 import { statusColor } from '../src/utils/status';
 
@@ -48,7 +48,7 @@ export default function Orders() {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: 14, backgroundColor: colors.white },
+  card: { borderRadius: radii.lg, padding: 16, backgroundColor: colors.white, ...shadow.soft },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderId: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.text },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.full },

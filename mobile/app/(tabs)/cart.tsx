@@ -6,7 +6,7 @@ import Screen from '../../src/components/Screen';
 import EmptyState from '../../src/components/EmptyState';
 import { useAuth } from '../../src/store/auth';
 import { useCart, useCartMutations, cartTotals } from '../../src/api/cart';
-import { colors, fonts, radii, spacing } from '../../src/theme';
+import { colors, fonts, radii, spacing, shadow } from '../../src/theme';
 import { formatPrice } from '../../src/utils/format';
 import type { CartItem, ProductVariant } from '../../src/types';
 
@@ -105,14 +105,14 @@ export default function Cart() {
 const styles = StyleSheet.create({
   header: { fontFamily: fonts.headingBold, fontSize: 26, color: colors.text, padding: spacing.lg },
   row: { flexDirection: 'row', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'flex-start' },
-  thumb: { width: 70, height: 92, borderRadius: radii.md, backgroundColor: colors.surface },
+  thumb: { width: 70, height: 92, borderRadius: radii.md, backgroundColor: colors.surface, ...shadow.soft },
   name: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   variant: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   price: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.text, marginTop: 4 },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 },
   qtyBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   qty: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text, minWidth: 18, textAlign: 'center' },
-  summary: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
+  summary: { padding: spacing.lg, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, backgroundColor: colors.white, ...shadow.card },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   sumLabel: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   sumVal: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },

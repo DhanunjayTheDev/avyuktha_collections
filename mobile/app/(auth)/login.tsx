@@ -4,10 +4,9 @@ import { useRouter, Link } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Screen from '../../src/components/Screen';
 import Field from '../../src/components/Field';
 import { useAuth } from '../../src/store/auth';
-import { colors, fonts, radii } from '../../src/theme';
+import { colors, fonts, radii, spacing, shadow } from '../../src/theme';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -37,41 +36,51 @@ export default function Login() {
   };
 
   return (
-    <Screen>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={styles.logo}>AVYUKTHA</Text>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to continue shopping</Text>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+          {/* Brand header */}
+          <View style={styles.hero}>
+            <Text style={styles.brand}>AVYUKTHA</Text>
+            <Text style={styles.brandSub}>FASHIONS</Text>
+          </View>
 
-          <Controller control={control} name="email" render={({ field }) => (
-            <Field label="Email" autoCapitalize="none" keyboardType="email-address"
-              value={field.value} onChangeText={field.onChange} error={errors.email?.message} />
-          )} />
-          <Controller control={control} name="password" render={({ field }) => (
-            <Field label="Password" secureTextEntry value={field.value}
-              onChangeText={field.onChange} error={errors.password?.message} />
-          )} />
+          {/* Form card overlapping the header */}
+          <View style={[styles.card, shadow.card]}>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>Sign in to continue shopping</Text>
 
-          <Pressable style={[styles.cta, loading && { opacity: 0.6 }]} disabled={loading} onPress={handleSubmit(onSubmit)}>
-            <Text style={styles.ctaText}>{loading ? 'Signing in…' : 'Sign In'}</Text>
-          </Pressable>
+            <Controller control={control} name="email" render={({ field }) => (
+              <Field label="Email" autoCapitalize="none" keyboardType="email-address"
+                value={field.value} onChangeText={field.onChange} error={errors.email?.message} />
+            )} />
+            <Controller control={control} name="password" render={({ field }) => (
+              <Field label="Password" secureTextEntry value={field.value}
+                onChangeText={field.onChange} error={errors.password?.message} />
+            )} />
 
-          <View style={styles.footer}>
-            <Text style={styles.muted}>New here? </Text>
-            <Link href="/(auth)/register" style={styles.link}>Create an account</Link>
+            <Pressable style={[styles.cta, loading && { opacity: 0.6 }]} disabled={loading} onPress={handleSubmit(onSubmit)}>
+              <Text style={styles.ctaText}>{loading ? 'Signing in…' : 'Sign In'}</Text>
+            </Pressable>
+
+            <View style={styles.footer}>
+              <Text style={styles.muted}>New here? </Text>
+              <Link href="/(auth)/register" style={styles.link}>Create an account</Link>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { padding: 24, paddingTop: 40 },
-  logo: { fontFamily: fonts.headingBold, fontSize: 24, color: colors.text, letterSpacing: 3, marginBottom: 32 },
-  title: { fontFamily: fonts.headingBold, fontSize: 28, color: colors.text },
-  subtitle: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, marginBottom: 28, marginTop: 4 },
+  hero: { height: 260, alignItems: 'center', justifyContent: 'center', paddingTop: 40, backgroundColor: colors.primary },
+  brand: { fontFamily: fonts.headingBold, fontSize: 34, color: colors.white, letterSpacing: 5 },
+  brandSub: { fontFamily: fonts.body, fontSize: 11, color: 'rgba(255,255,255,0.85)', letterSpacing: 8, marginTop: 4 },
+  card: { marginTop: -32, marginHorizontal: spacing.lg, backgroundColor: colors.white, borderRadius: radii.xxl, padding: spacing.xl },
+  title: { fontFamily: fonts.headingBold, fontSize: 26, color: colors.text },
+  subtitle: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, marginBottom: 24, marginTop: 4 },
   cta: { backgroundColor: colors.text, borderRadius: radii.full, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   ctaText: { fontFamily: fonts.bodySemibold, color: colors.white, fontSize: 15 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },

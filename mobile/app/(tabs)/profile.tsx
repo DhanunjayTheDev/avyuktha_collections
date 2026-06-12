@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Screen from '../../src/components/Screen';
 import EmptyState from '../../src/components/EmptyState';
 import { useAuth } from '../../src/store/auth';
-import { colors, fonts, radii, spacing } from '../../src/theme';
+import { colors, fonts, radii, spacing, shadow } from '../../src/theme';
 
 const ROWS: { icon: keyof typeof Ionicons.glyphMap; label: string; href: string }[] = [
   { icon: 'cube-outline', label: 'My Orders', href: '/orders' },
@@ -42,22 +42,20 @@ export default function Profile() {
   };
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <Text style={styles.header}>Profile</Text>
-
-        <View style={styles.userCard}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* Brand header with avatar */}
+        <View style={styles.hero}>
           <View style={styles.avatar}><Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text></View>
-          <View>
-            <Text style={styles.name}>{user?.name}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-          </View>
+          <Text style={styles.name}>{user?.name}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
         </View>
 
-        <View style={styles.rows}>
-          {ROWS.map((r) => (
-            <Pressable key={r.label} style={styles.row} onPress={() => router.push(r.href as never)}>
-              <Ionicons name={r.icon} size={20} color={colors.text} />
+        {/* Menu card overlapping header */}
+        <View style={[styles.menu, shadow.card]}>
+          {ROWS.map((r, i) => (
+            <Pressable key={r.label} style={[styles.row, i === ROWS.length - 1 && { borderBottomWidth: 0 }]} onPress={() => router.push(r.href as never)}>
+              <View style={styles.rowIcon}><Ionicons name={r.icon} size={18} color={colors.primary} /></View>
               <Text style={styles.rowLabel}>{r.label}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.muted} style={{ marginLeft: 'auto' }} />
             </Pressable>
@@ -69,20 +67,21 @@ export default function Profile() {
           <Text style={styles.logoutText}>Sign Out</Text>
         </Pressable>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: { fontFamily: fonts.headingBold, fontSize: 26, color: colors.text, padding: spacing.lg },
-  userCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: spacing.lg, padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radii.lg },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: fonts.headingBold, fontSize: 22, color: colors.white },
-  name: { fontFamily: fonts.bodySemibold, fontSize: 16, color: colors.text },
-  email: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
-  rows: { marginTop: spacing.xl, marginHorizontal: spacing.lg },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  hero: { paddingTop: 70, paddingBottom: 56, alignItems: 'center', backgroundColor: colors.primary },
+  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.25)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: fonts.headingBold, fontSize: 30, color: colors.white },
+  name: { fontFamily: fonts.headingBold, fontSize: 22, color: colors.white, marginTop: 12 },
+  email: { fontFamily: fonts.body, fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  menu: { marginTop: -32, marginHorizontal: spacing.lg, backgroundColor: colors.white, borderRadius: radii.xxl, paddingHorizontal: spacing.sm, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rowIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
-  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.xxl, marginHorizontal: spacing.lg, paddingVertical: 14, borderWidth: 1, borderColor: colors.border, borderRadius: radii.full },
+  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.xl, marginHorizontal: spacing.lg, paddingVertical: 15, borderWidth: 1, borderColor: colors.border, borderRadius: radii.full, backgroundColor: colors.white },
   logoutText: { fontFamily: fonts.bodySemibold, fontSize: 15, color: colors.danger },
 });

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Screen from '../../src/components/Screen';
 import ProductCard from '../../src/components/ProductCard';
 import NewsletterCard from '../../src/components/NewsletterCard';
+import InfiniteMarquee from '../../src/components/InfiniteMarquee';
 import { useProducts, useCategories, useCollections } from '../../src/api/catalog';
 import { recentlyViewed, type MiniProduct } from '../../src/lib/recentlyViewed';
 import { formatPrice } from '../../src/utils/format';
@@ -104,10 +105,10 @@ export default function Home() {
           </View>
         </Pressable>
 
-        {/* Marquee */}
-        <FlatList data={MARQUEE} horizontal showsHorizontalScrollIndicator={false} keyExtractor={(m) => m}
-          style={styles.marquee} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 0, alignItems: 'center' }}
-          renderItem={({ item }) => <Text style={styles.marqueeItem}>{item}  ✦  </Text>} />
+        {/* Marquee — auto infinite scroll */}
+        <View style={{ marginTop: spacing.lg }}>
+          <InfiniteMarquee items={MARQUEE} speed={45} />
+        </View>
 
         {/* New Arrivals */}
         <Rail title="New Arrivals" query={{ isNewArrival: true }} onSeeAll={() => router.push('/search?isNewArrival=true')} />
