@@ -7,9 +7,35 @@ import { AuthRequest } from '../types';
 import { sendSuccess, sendError, getPagination } from '../utils/apiResponse';
 import { emitEvent, SOCKET_EVENTS } from '../config/socket';
 import { invalidateCache } from '../middleware/cache';
-import { createRazorpayOrder, verifyRazorpaySignature } from '../services/razorpay.service';
-import { createShiprocketOrder } from '../services/shiprocket.service';
+import { createRazorpayPaymentLink, fetchRazorpayPaymentLink } from '../services/razorpay.service';
+import { createStripeCheckoutSession, retrieveStripeCheckoutSession } from '../services/stripe.service';
 import { sendOrderConfirmationEmail } from '../services/email.service';
+import { sendPushToUser } from '../services/push.service';
+import { IOrder } from '../types';
+
+/** Append a status event + broadcast it so clients live-update the tracker. */
+const pushStatus = (order: IOrder, status: IOrder['status'], note?: string): void => {
+  order.status = status;
+  order.statusHistory.push({ status, note, at: new Date() });
+};
+
+const emitOrderUpdate = (order: IOrder): void => {
+  emitEvent(SOCKET_EVENTS.orderUpdated, {
+    orderId: String(order._id),
+    orderNumber: order.orderId,
+    status: order.status,
+    statusHistory: order.statusHistory,
+  });
+};
+
+/** Publishable keys the storefront/mobile need to mount the payment UIs. */
+export const getPaymentConfig = async (_req: AuthRequest, res: Response): Promise<void> => {
+  sendSuccess(res, 'Payment config', {
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || null,
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
+    codEnabled: true,
+  });
+};
 
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -72,15 +98,38 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending',
     });
 
-    if (paymentMethod !== 'cod') {
-      const rzpOrder = await createRazorpayOrder(total, 'INR', order.orderId);
-      order.razorpayOrderId = rzpOrder.id;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const successUrl = `${clientUrl}/payment-return?order=${order._id}&status=success`;
+    const cancelUrl = `${clientUrl}/payment-return?order=${order._id}&status=cancel`;
+
+    if (paymentMethod === 'stripe') {
+      const session = await createStripeCheckoutSession(total, order.orderId, successUrl, cancelUrl);
+      order.stripePaymentIntentId = session.id; // store session id for verification
       await order.save();
 
       sendSuccess(res, 'Order created', {
         orderId: order._id,
         orderNumber: order.orderId,
-        razorpayOrderId: rzpOrder.id,
+        provider: 'stripe',
+        url: session.url,
+        amount: total,
+        currency: 'INR',
+      }, 201);
+    } else if (paymentMethod !== 'cod') {
+      const link = await createRazorpayPaymentLink(
+        total,
+        order.orderId,
+        { name: address.fullName, email: user.email, contact: address.phone },
+        successUrl
+      );
+      order.razorpayOrderId = link.id; // store payment-link id for verification
+      await order.save();
+
+      sendSuccess(res, 'Order created', {
+        orderId: order._id,
+        orderNumber: order.orderId,
+        provider: 'razorpay',
+        url: link.short_url,
         amount: total,
         currency: 'INR',
       }, 201);
@@ -93,19 +142,65 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
+/**
+ * Verify a Razorpay hosted Payment Link after the user returns from checkout.
+ * We poll the gateway for the link status rather than trusting the client.
+ */
 export const verifyPayment = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const { orderId } = req.body;
 
-    if (!verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) {
-      sendError(res, 'Payment verification failed', 400);
+    const order = await Order.findOne({ _id: orderId, user: req.user!._id }).populate('user');
+    if (!order) { sendError(res, 'Order not found', 404); return; }
+    if (order.paymentStatus === 'paid') { sendSuccess(res, 'Order already confirmed'); return; }
+    if (!order.razorpayOrderId) { sendError(res, 'No payment link for this order', 400); return; }
+
+    // Razorpay marks the link 'paid' slightly after the customer pays — poll a
+    // few times so we don't fail when the user returns before the webhook lands.
+    let link = await fetchRazorpayPaymentLink(order.razorpayOrderId);
+    for (let i = 0; i < 4 && link.status !== 'paid'; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      link = await fetchRazorpayPaymentLink(order.razorpayOrderId);
+    }
+
+    if (link.status !== 'paid') {
+      sendError(res, `Payment not completed (status: ${link.status})`, 400);
       return;
     }
 
-    const order = await Order.findById(orderId).populate('user');
-    if (!order) { sendError(res, 'Order not found', 404); return; }
+    const payments = (link.payments as unknown as Array<{ payment_id: string }> | undefined) ?? [];
+    order.razorpayPaymentId = payments[0]?.payment_id;
+    order.paymentStatus = 'paid';
+    await order.save();
 
-    order.razorpayPaymentId = razorpayPaymentId;
+    await confirmOrderFulfillment(order, req.user!);
+    sendSuccess(res, 'Payment verified. Order confirmed.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** Verify a Stripe hosted Checkout Session after the user returns from checkout. */
+export const verifyStripePayment = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findOne({ _id: orderId, user: req.user!._id }).populate('user');
+    if (!order) { sendError(res, 'Order not found', 404); return; }
+    if (order.paymentStatus === 'paid') { sendSuccess(res, 'Order already confirmed'); return; }
+    if (!order.stripePaymentIntentId) { sendError(res, 'No checkout session for this order', 400); return; }
+
+    let session = await retrieveStripeCheckoutSession(order.stripePaymentIntentId);
+    for (let i = 0; i < 4 && session.payment_status !== 'paid'; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      session = await retrieveStripeCheckoutSession(order.stripePaymentIntentId);
+    }
+
+    if (session.payment_status !== 'paid') {
+      sendError(res, `Payment not completed (status: ${session.payment_status})`, 400);
+      return;
+    }
+
     order.paymentStatus = 'paid';
     await order.save();
 
@@ -119,7 +214,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response, next: NextF
 const confirmOrderFulfillment = async (order: InstanceType<typeof Order>, user: AuthRequest['user']) => {
   if (!user) return;
 
-  order.status = 'confirmed';
+  pushStatus(order, 'confirmed', 'Payment received, order confirmed');
 
   for (const item of order.items) {
     await Product.updateOne(
@@ -135,34 +230,33 @@ const confirmOrderFulfillment = async (order: InstanceType<typeof Order>, user: 
   }
 
   await order.save();
+  emitOrderUpdate(order);
   await Cart.findOneAndUpdate({ user: user._id }, { items: [], coupon: undefined });
 
+  // Send confirmation email
+  const addressEmail = order.shippingAddress.email?.trim();
+  const fallbackEmail = user.email;
   try {
-    await createShiprocketOrder({
-      orderId: order.orderId,
-      orderDate: new Date().toISOString().split('T')[0],
-      customerName: order.shippingAddress.fullName,
-      customerEmail: user.email,
-      customerPhone: order.shippingAddress.phone,
-      address: order.shippingAddress.line1,
-      city: order.shippingAddress.city,
-      state: order.shippingAddress.state,
-      pincode: order.shippingAddress.pincode,
-      items: order.items.map((i) => ({
-        name: i.product.toString(),
-        sku: i.variant.sku,
-        units: i.quantity,
-        sellingPrice: i.price,
-      })),
-      paymentMethod: order.paymentMethod,
-      subtotal: order.subtotal,
-      shippingCharge: order.shippingCharge,
-    });
+    await sendOrderConfirmationEmail(addressEmail || fallbackEmail, user.name, order.orderId, order.total);
   } catch {
-    // Shiprocket failure should not block order confirmation
+    if (addressEmail && addressEmail.toLowerCase() !== fallbackEmail.toLowerCase()) {
+      try {
+        await sendOrderConfirmationEmail(fallbackEmail, user.name, order.orderId, order.total);
+      } catch {
+        // Email failure must not block order confirmation.
+      }
+    }
   }
 
-  await sendOrderConfirmationEmail(user.email, user.name, order.orderId, order.total);
+  // Push notification (fire-and-forget)
+  void sendPushToUser({
+    userId: user._id,
+    title: '✅ Order Confirmed',
+    body: `Your order #${order.orderId} is confirmed and being processed!`,
+    type: 'order_confirmed',
+    orderId: String(order._id),
+    orderNumber: order.orderId,
+  });
 };
 
 export const getMyOrders = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -217,9 +311,19 @@ export const cancelOrder = async (req: AuthRequest, res: Response, next: NextFun
       return;
     }
 
-    order.status = 'cancelled';
     order.cancelReason = req.body.reason || 'Cancelled by customer';
+    pushStatus(order, 'cancelled', order.cancelReason);
     await order.save();
+    emitOrderUpdate(order);
+
+    void sendPushToUser({
+      userId: req.user!._id,
+      title: '❌ Order Cancelled',
+      body: `Your order #${order.orderId} has been cancelled.`,
+      type: 'order_cancelled',
+      orderId: String(order._id),
+      orderNumber: order.orderId,
+    });
 
     for (const item of order.items) {
       await Product.updateOne(

@@ -53,28 +53,42 @@ export default function DataTable<T>({ columns, data, isLoading, emptyMessage = 
       </div>
 
       {pagination && pagination.pages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3.5 border-t border-brand-border/40 bg-[#FAF7F4] rounded-b-xl">
-          <p className="font-body text-[10px] text-brand-muted">
+        <div
+          className="flex items-center justify-between px-4 py-3.5 rounded-b-xl"
+          style={{ borderTop: '1px solid var(--c-border)', background: 'var(--c-surface)' }}
+        >
+          <p className="font-body text-[10px]" style={{ color: 'var(--c-muted)' }}>
             Page {pagination.page} of {pagination.pages} &middot; {pagination.total} total
           </p>
           <div className="flex items-center gap-1">
-            <button onClick={() => pagination.onPageChange(pagination.page - 1)} disabled={pagination.page <= 1}
-              className="w-7 h-7 flex items-center justify-center rounded border border-brand-border hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+            <button
+              onClick={() => pagination.onPageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className="pagn-btn w-7 h-7 flex items-center justify-center rounded disabled:opacity-40"
+            >
               <ChevronLeft size={13} />
             </button>
             {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
               const p = Math.max(1, Math.min(pagination.page - 2, pagination.pages - 4)) + i;
+              const active = p === pagination.page;
               return (
-                <button key={p} onClick={() => pagination.onPageChange(p)}
-                  className={`w-7 h-7 font-body text-xs rounded border transition-colors ${
-                    p === pagination.page ? 'bg-primary text-white border-primary' : 'border-brand-border hover:border-primary hover:text-primary'
-                  }`}>
+                <button
+                  key={p}
+                  onClick={() => pagination.onPageChange(p)}
+                  className={`w-7 h-7 font-body text-xs rounded transition-colors ${active ? '' : 'pagn-btn'}`}
+                  style={active
+                    ? { background: 'var(--c-primary)', color: '#fff', border: '1px solid var(--c-primary)' }
+                    : undefined}
+                >
                   {p}
                 </button>
               );
             })}
-            <button onClick={() => pagination.onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.pages}
-              className="w-7 h-7 flex items-center justify-center rounded border border-brand-border hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+            <button
+              onClick={() => pagination.onPageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.pages}
+              className="pagn-btn w-7 h-7 flex items-center justify-center rounded disabled:opacity-40"
+            >
               <ChevronRight size={13} />
             </button>
           </div>

@@ -9,6 +9,8 @@ import SupportTicket from '../models/SupportTicket';
 import Return from '../models/Return';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, getPagination } from '../utils/apiResponse';
+import { emitEvent, SOCKET_EVENTS } from '../config/socket';
+import { sendPushToUser, getStatusPushContent } from '../services/push.service';
 
 export const getDashboardStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -178,6 +180,7 @@ export const getAllOrders = async (req: Request, res: Response, next: NextFuncti
     const [orders, total] = await Promise.all([
       Order.find(filter)
         .populate('user', 'name email')
+        .populate('items.product', 'name images')
         .sort('-createdAt')
         .skip(skip)
         .limit(l)
@@ -222,14 +225,33 @@ export const getAdminOrderById = async (req: Request, res: Response, next: NextF
 
 export const updateOrderStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { status, awbCode, trackingUrl, shiprocketOrderId } = req.body;
-    const update: Record<string, unknown> = { status };
-    if (awbCode) update.awbCode = awbCode;
-    if (trackingUrl) update.trackingUrl = trackingUrl;
-    if (shiprocketOrderId) update.shiprocketOrderId = shiprocketOrderId;
+    const { status, awbCode, trackingUrl, shiprocketOrderId, note } = req.body;
 
-    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
+    const order = await Order.findById(req.params.id);
     if (!order) { sendError(res, 'Order not found', 404); return; }
+
+    if (awbCode) order.awbCode = awbCode;
+    if (trackingUrl) order.trackingUrl = trackingUrl;
+    if (shiprocketOrderId) order.shiprocketOrderId = shiprocketOrderId;
+
+    const prevStatus = order.status;
+    if (status && status !== order.status) {
+      order.status = status;
+      order.statusHistory.push({ status, note: note || `Marked ${status} by admin`, at: new Date() });
+    }
+    await order.save();
+
+    emitEvent(SOCKET_EVENTS.orderUpdated, {
+      orderId: String(order._id),
+      orderNumber: order.orderId,
+      status: order.status,
+      statusHistory: order.statusHistory,
+    });
+
+    if (status && status !== prevStatus) {
+      const { title, body, type } = getStatusPushContent(status, order.orderId);
+      void sendPushToUser({ userId: order.user, title, body, type, orderId: String(order._id), orderNumber: order.orderId });
+    }
 
     await AuditLog.create({
       user: req.user!._id,

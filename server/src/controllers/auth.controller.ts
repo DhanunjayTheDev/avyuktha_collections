@@ -284,7 +284,7 @@ export const manageAddresses = async (req: AuthRequest, res: Response, next: Nex
       if (idx === -1) { sendError(res, 'Address not found', 404); return; }
       if (address.isDefault) user.addresses.forEach((a) => (a.isDefault = false));
       Object.assign(user.addresses[idx], address);
-    } else if (action === 'remove' && addressId) {
+    } else if ((action === 'remove' || action === 'delete') && addressId) {
       user.addresses = user.addresses.filter((a) => a._id?.toString() !== addressId);
     } else if (action === 'setDefault' && addressId) {
       user.addresses.forEach((a) => (a.isDefault = a._id?.toString() === addressId));

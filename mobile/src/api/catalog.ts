@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { Category, Collection, Product, ProductType, Paginated } from '../types';
+import type { Attribute, Category, Collection, Product, ProductType, Paginated } from '../types';
 
 export interface ProductQuery {
   page?: number;
@@ -10,9 +10,13 @@ export interface ProductQuery {
   category?: string;
   collection?: string;
   productType?: string;
+  minPrice?: number;
+  maxPrice?: number;
   isNewArrival?: boolean;
   isBestSeller?: boolean;
   isTrending?: boolean;
+  // dynamic attribute filters (slug -> comma-joined values)
+  [key: string]: string | number | boolean | undefined;
 }
 
 const get = <T,>(url: string, params?: object) =>
@@ -41,3 +45,11 @@ export const useCollections = () =>
 
 export const useProductTypes = () =>
   useQuery({ queryKey: ['product-types'], staleTime, queryFn: () => get<{ data: ProductType[] }>('/catalog/product-types').then((r) => r.data) });
+
+export const useAttributes = (productType?: string) =>
+  useQuery({
+    queryKey: ['attributes', productType ?? 'all'],
+    staleTime,
+    queryFn: () =>
+      get<{ data: Attribute[] }>('/catalog/attributes', { filterable: true, productType }).then((r) => r.data),
+  });

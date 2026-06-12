@@ -39,5 +39,32 @@ export const verifyRazorpaySignature = (
 export const fetchRazorpayPayment = async (paymentId: string) =>
   getRazorpay().payments.fetch(paymentId);
 
+/**
+ * Hosted Payment Link — returns `short_url` the storefront/mobile open in a
+ * browser. Works cross-platform without the checkout.js / native SDK.
+ */
+export const createRazorpayPaymentLink = async (
+  amount: number,
+  receipt: string,
+  customer: { name: string; email?: string; contact?: string },
+  callbackUrl: string,
+  currency = 'INR'
+) => {
+  return getRazorpay().paymentLink.create({
+    amount: Math.round(amount * 100),
+    currency,
+    accept_partial: false,
+    reference_id: receipt,
+    description: `Avyuktha Order ${receipt}`,
+    customer,
+    notify: { sms: false, email: !!customer.email },
+    callback_url: callbackUrl,
+    callback_method: 'get',
+  });
+};
+
+export const fetchRazorpayPaymentLink = async (id: string) =>
+  getRazorpay().paymentLink.fetch(id);
+
 export const refundRazorpayPayment = async (paymentId: string, amount: number) =>
   getRazorpay().payments.refund(paymentId, { amount: Math.round(amount * 100) });

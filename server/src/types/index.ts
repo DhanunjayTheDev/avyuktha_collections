@@ -17,6 +17,7 @@ export interface IUser extends Document {
   otpExpiry?: Date;
   passwordResetToken?: string;
   passwordResetExpiry?: Date;
+  pushToken?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -27,12 +28,15 @@ export interface IAddress {
   label: string;
   fullName: string;
   phone: string;
+  email?: string;
   line1: string;
   line2?: string;
   city: string;
   state: string;
   pincode: string;
   country: string;
+  lat?: number;
+  lng?: number;
   isDefault: boolean;
 }
 
@@ -98,11 +102,13 @@ export interface IOrder extends Document {
   discount: number;
   total: number;
   coupon?: Types.ObjectId;
-  paymentMethod: 'razorpay' | 'upi' | 'card' | 'netbanking' | 'cod';
+  paymentMethod: 'razorpay' | 'stripe' | 'upi' | 'card' | 'netbanking' | 'cod';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  stripePaymentIntentId?: string;
   status: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'returned' | 'cancelled';
+  statusHistory: { status: string; note?: string; at: Date }[];
   shiprocketOrderId?: string;
   awbCode?: string;
   trackingUrl?: string;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 import { tokenStore } from '../lib/tokenStore';
+import { setupPushNotifications } from '../lib/pushNotifications';
 import type { User } from '../types';
 
 interface AuthState {
@@ -9,6 +10,8 @@ interface AuthState {
   hydrated: boolean; // finished checking stored token on launch
   login: (email: string, password: string) => Promise<void>;
   register: (payload: { name: string; email: string; phone: string; password: string }) => Promise<void>;
+  verifyEmail: (email: string, otp: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
@@ -23,11 +26,21 @@ export const useAuth = create<AuthState>((set) => ({
     const { accessToken, refreshToken, user } = data.data;
     await tokenStore.set(accessToken, refreshToken);
     set({ user, isAuthenticated: true });
+    // Register push token after login (non-blocking)
+    void setupPushNotifications();
   },
 
   register: async (payload) => {
     await api.post('/auth/register', payload);
     // Server sends OTP; verification handled on its screen. No tokens yet.
+  },
+
+  verifyEmail: async (email, otp) => {
+    await api.post('/auth/verify-email', { email, otp });
+  },
+
+  resendOtp: async (email) => {
+    await api.post('/auth/resend-otp', { email });
   },
 
   logout: async () => {
@@ -44,6 +57,8 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       const { data } = await api.get('/auth/me');
       set({ user: data.data, isAuthenticated: true, hydrated: true });
+      // Re-register token on app restart (token may have changed)
+      void setupPushNotifications();
     } catch {
       await tokenStore.clear();
       set({ user: null, isAuthenticated: false, hydrated: true });

@@ -21,6 +21,7 @@ import supportRoutes from './routes/support.routes';
 import adminRoutes from './routes/admin.routes';
 import cmsRoutes from './routes/cms.routes';
 import promotionRoutes from './routes/promotion.routes';
+import notificationRoutes from './routes/notification.routes';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(`${API}/support`, supportRoutes);
 app.use(`${API}/admin`, adminRoutes);
 app.use(`${API}/cms`, cmsRoutes);
 app.use(`${API}/promotions`, promotionRoutes);
+app.use(`${API}/notifications`, notificationRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }));
 

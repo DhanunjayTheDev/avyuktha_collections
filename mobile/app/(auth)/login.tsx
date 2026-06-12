@@ -51,11 +51,11 @@ export default function Login() {
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
 
             <Controller control={control} name="email" render={({ field }) => (
-              <Field label="Email" autoCapitalize="none" keyboardType="email-address"
+              <Field label="Email" required autoCapitalize="none" keyboardType="email-address"
                 value={field.value} onChangeText={field.onChange} error={errors.email?.message} />
             )} />
             <Controller control={control} name="password" render={({ field }) => (
-              <Field label="Password" secureTextEntry value={field.value}
+              <Field label="Password" required secureTextEntry value={field.value}
                 onChangeText={field.onChange} error={errors.password?.message} />
             )} />
 

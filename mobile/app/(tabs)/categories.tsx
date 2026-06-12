@@ -28,27 +28,26 @@ export default function Categories() {
         <Text style={styles.title}>Categories</Text>
       </View>
 
-      {/* Product-type filter pills */}
+      {/* Product-type tabs (underline) */}
       {!!types?.length && (
-        <FlatList
-          data={[{ _id: 'all', name: 'All', slug: '' } as ProductType, ...types]}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(t) => t._id}
-          style={styles.pillsRow}
-          contentContainerStyle={styles.pillsContent}
-          renderItem={({ item }) => {
-            const active = (item.slug || null) === activeType;
-            return (
-              <Pressable
-                onPress={() => setActiveType(item.slug || null)}
-                style={[styles.pill, active ? styles.pillActive : styles.pillInactive, active && shadow.soft]}
-              >
-                <Text style={[styles.pillText, active ? styles.pillTextActive : styles.pillTextInactive]}>{item.name}</Text>
-              </Pressable>
-            );
-          }}
-        />
+        <View style={styles.tabsBar}>
+          <FlatList
+            data={[{ _id: 'all', name: 'All', slug: '' } as ProductType, ...types]}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(t) => t._id}
+            contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 26 }}
+            renderItem={({ item }) => {
+              const active = (item.slug || null) === activeType;
+              return (
+                <Pressable style={styles.tab} onPress={() => setActiveType(item.slug || null)}>
+                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.name}</Text>
+                  <View style={[styles.tabBar, active && styles.tabBarActive]} />
+                </Pressable>
+              );
+            }}
+          />
+        </View>
       )}
 
       {isLoading ? (
@@ -86,15 +85,13 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
   kicker: { fontFamily: fonts.bodySemibold, fontSize: 11, color: colors.primary, letterSpacing: 3 },
   title: { fontFamily: fonts.headingBold, fontSize: 32, color: colors.text, marginTop: 2 },
-  // pills
-  pillsRow: { flexGrow: 0, marginBottom: spacing.lg },
-  pillsContent: { paddingHorizontal: spacing.lg, gap: 10, alignItems: 'center' },
-  pill: { height: 40, paddingHorizontal: 20, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center' },
-  pillActive: { backgroundColor: colors.primary },
-  pillInactive: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
-  pillText: { fontSize: 13, letterSpacing: 0.3, includeFontPadding: false },
-  pillTextActive: { fontFamily: fonts.bodySemibold, color: colors.white },
-  pillTextInactive: { fontFamily: fonts.bodyMedium, color: colors.muted },
+  // tabs (underline)
+  tabsBar: { borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: spacing.lg },
+  tab: { alignItems: 'center' },
+  tabText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.muted, paddingVertical: 12, letterSpacing: 0.3 },
+  tabTextActive: { fontFamily: fonts.bodySemibold, color: colors.text },
+  tabBar: { height: 2.5, width: '100%', borderRadius: 2, backgroundColor: 'transparent' },
+  tabBarActive: { backgroundColor: colors.primary },
   // cards
   card: { aspectRatio: 0.8, borderRadius: radii.xl, overflow: 'hidden', justifyContent: 'flex-end', backgroundColor: colors.surface },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(28,28,28,0.32)' },

@@ -50,6 +50,23 @@ export interface ProductType {
   slug: string;
 }
 
+export interface AttributeOption {
+  label: string;
+  value: string;
+  hex?: string;
+}
+
+export interface Attribute {
+  _id: string;
+  name: string;
+  slug: string;
+  level: 'product' | 'variant';
+  inputType: 'select' | 'multiselect' | 'chips' | 'color';
+  options: AttributeOption[];
+  productTypes: string[];
+  isFilterable: boolean;
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -81,12 +98,15 @@ export interface Address {
   label: string;
   fullName: string;
   phone: string;
+  email?: string;
   line1: string;
   line2?: string;
   city: string;
   state: string;
   pincode: string;
   country: string;
+  lat?: number;
+  lng?: number;
   isDefault?: boolean;
 }
 
@@ -112,6 +132,7 @@ export interface Order {
   paymentMethod: string;
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   status: OrderStatus;
+  statusHistory?: { status: OrderStatus; note?: string; at: string }[];
   awbCode?: string;
   trackingUrl?: string;
   createdAt: string;

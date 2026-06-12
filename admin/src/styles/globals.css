@@ -215,6 +215,18 @@ table tbody tr:hover td {
   background: var(--c-th-bg) !important;
 }
 
+/* Pagination nav / page buttons */
+.pagn-btn {
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  background: transparent;
+  transition: border-color 0.15s, color 0.15s;
+}
+.pagn-btn:hover:not(:disabled) {
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+}
+
 /* Skeleton loading */
 .dark .bg-slate-100 { background-color: rgba(255,255,255,0.06) !important; }
 

@@ -60,13 +60,18 @@ export default function Cart() {
         renderItem={({ item }: { item: CartItem }) => {
           const v = item.product.variants?.find((x: ProductVariant) => x.sku === item.variantSku);
           const maxStock = v?.stock ?? 99;
+          const goProduct = () => router.push(`/product/${item.product.slug}`);
           return (
             <View style={styles.row}>
-              <Image source={{ uri: item.product.images?.[0] }} style={styles.thumb} contentFit="cover" />
+              <Pressable onPress={goProduct}>
+                <Image source={{ uri: item.product.images?.[0] }} style={styles.thumb} contentFit="cover" />
+              </Pressable>
               <View style={{ flex: 1 }}>
-                <Text style={styles.name} numberOfLines={2}>{item.product.name}</Text>
-                <Text style={styles.variant}>{variantLabel(item)}</Text>
-                <Text style={styles.price}>{formatPrice(item.price)}</Text>
+                <Pressable onPress={goProduct}>
+                  <Text style={styles.name} numberOfLines={2}>{item.product.name}</Text>
+                  <Text style={styles.variant}>{variantLabel(item)}</Text>
+                  <Text style={styles.price}>{formatPrice(item.price)}</Text>
+                </Pressable>
                 <View style={styles.qtyRow}>
                   <Pressable style={styles.qtyBtn} onPress={() => {
                     if (item.quantity <= 1) remove.mutate({ productId: item.product._id, variantSku: item.variantSku });

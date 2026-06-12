@@ -20,20 +20,53 @@
     },
     "android": {
       "package": "com.avyuktha.fashions",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFF9F5"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
       }
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Avyuktha uses your location to set your delivery address."
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C8A97E",
+          "sounds": [],
+          "mode": "production"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://localhost:5000/api/v1"
+      "apiUrl": "https://YOUR_SERVER_DOMAIN/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "88e38084-a68a-4447-a118-96308b3595b6"
+      }
     }
   }
 }

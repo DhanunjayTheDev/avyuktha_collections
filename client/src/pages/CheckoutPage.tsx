@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Plus, Tag } from 'lucide-react';
@@ -9,17 +9,6 @@ import { couponApi } from '../api/misc.api';
 import { formatPrice } from '../utils/format';
 import toast from 'react-hot-toast';
 
-declare global {
-  interface Window {
-    Razorpay: new (options: object) => { open: () => void };
-  }
-}
-
-const PAYMENT_METHODS = [
-  { id: 'razorpay', label: 'Online Payment', sub: 'UPI, Cards, Net Banking via Razorpay' },
-  { id: 'cod', label: 'Cash on Delivery', sub: 'Pay when your order arrives' },
-];
-
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -29,10 +18,21 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState(
     user?.addresses.find((a) => a.isDefault)?._id || user?.addresses[0]?._id || ''
   );
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [couponInput, setCouponInput] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [payConfig, setPayConfig] = useState<{ razorpayKeyId: string | null; stripePublishableKey: string | null }>({ razorpayKeyId: null, stripePublishableKey: null });
+
+  useEffect(() => {
+    orderApi.getPaymentConfig().then(({ data }) => setPayConfig(data.data)).catch(() => {});
+  }, []);
+
+  const paymentMethods = [
+    { id: 'cod', label: 'Cash on Delivery', sub: 'Pay when your order arrives', enabled: true },
+    { id: 'razorpay', label: 'UPI / Cards / Net Banking', sub: 'Secure payment via Razorpay', enabled: !!payConfig.razorpayKeyId },
+    { id: 'stripe', label: 'International Cards', sub: 'Secure payment via Stripe', enabled: !!payConfig.stripePublishableKey },
+  ];
 
   const shippingCharge = freeShipping || subtotal >= 999 ? 0 : 99;
   const total = subtotal - couponDiscount + shippingCharge;
@@ -64,35 +64,19 @@ export default function CheckoutPage() {
 
       if (paymentMethod === 'cod') {
         await clearCart();
-        navigate(`/account?tab=orders`);
         toast.success('Order placed successfully!');
+        navigate(`/orders/${data.data.orderId}`);
         return;
       }
 
-      const rzpOptions = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: total * 100,
-        currency: 'INR',
-        name: 'Avyuktha Fashions',
-        description: 'Fashion Order',
-        order_id: data.data.razorpayOrderId,
-        prefill: { name: user?.name, email: user?.email, contact: user?.phone },
-        theme: { color: '#C8A97E' },
-        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-          await orderApi.verifyPayment({
-            orderId: data.data.orderId,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-          });
-          await clearCart();
-          navigate(`/account/orders`);
-          toast.success('Payment successful! Order confirmed.');
-        },
-      };
+      // Online → hosted gateway. Stash the order so the return page can verify.
+      if (data.data.url) {
+        localStorage.setItem('pendingPayment', JSON.stringify({ orderId: data.data.orderId, provider: data.data.provider }));
+        window.location.href = data.data.url;
+        return;
+      }
 
-      const rzp = new window.Razorpay(rzpOptions);
-      rzp.open();
+      toast.error('Could not start payment. Please try again.');
     } catch {
     } finally {
       setPlacing(false);
@@ -159,10 +143,10 @@ export default function CheckoutPage() {
             <section className="bg-white border border-brand-border p-6">
               <h2 className="font-heading text-lg font-semibold mb-5">Payment Method</h2>
               <div className="space-y-3">
-                {PAYMENT_METHODS.map((pm) => (
+                {paymentMethods.map((pm) => (
                   <label
                     key={pm.id}
-                    className={`flex gap-4 p-4 border-2 cursor-pointer transition-colors ${
+                    className={`flex gap-4 p-4 border-2 transition-colors ${!pm.enabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} ${
                       paymentMethod === pm.id ? 'border-primary bg-primary/3' : 'border-brand-border hover:border-primary/40'
                     }`}
                   >
@@ -171,6 +155,7 @@ export default function CheckoutPage() {
                       name="payment"
                       value={pm.id}
                       checked={paymentMethod === pm.id}
+                      disabled={!pm.enabled}
                       onChange={() => setPaymentMethod(pm.id)}
                       className="mt-1 accent-primary"
                     />

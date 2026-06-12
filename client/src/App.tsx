@@ -20,6 +20,8 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
+const PaymentReturnPage = lazy(() => import('./pages/PaymentReturnPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -49,6 +51,14 @@ export default function App() {
               <Route
                 path="/checkout"
                 element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/orders/:id"
+                element={<ProtectedRoute><OrderTrackingPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/payment-return"
+                element={<ProtectedRoute><PaymentReturnPage /></ProtectedRoute>}
               />
               <Route
                 path="/account/*"

@@ -4,12 +4,14 @@ export const orderApi = {
   createOrder: (data: { addressId: string; paymentMethod: string; couponCode?: string }) =>
     client.post('/orders', data),
 
-  verifyPayment: (data: {
-    orderId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) => client.post('/orders/verify-payment', data),
+  getPaymentConfig: () => client.get('/orders/payment-config'),
+
+  // Hosted-checkout verification — server polls the gateway by stored id.
+  verifyPayment: (data: { orderId: string }) =>
+    client.post('/orders/verify-payment', data),
+
+  verifyStripePayment: (data: { orderId: string }) =>
+    client.post('/orders/verify-stripe-payment', data),
 
   getMyOrders: (page = 1, limit = 10) =>
     client.get('/orders/my', { params: { page, limit } }),

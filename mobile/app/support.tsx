@@ -67,20 +67,32 @@ export default function Support() {
           ) : !tickets?.length ? (
             <EmptyState icon="chatbubbles-outline" title="No tickets" subtitle="Raise a ticket and we’ll help you out." />
           ) : (
-            <FlatList
-              data={tickets}
-              keyExtractor={(t) => t._id}
-              contentContainerStyle={{ padding: spacing.lg, gap: 12 }}
-              renderItem={({ item }) => (
-                <Pressable style={styles.card} onPress={() => router.push(`/support/${item._id}`)}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.subject} numberOfLines={1}>{item.subject}</Text>
-                    <Text style={styles.meta}>{item.category} · {new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
-                  </View>
-                  <Text style={[styles.status, { color: STATUS_COLOR[item.status] }]}>{item.status}</Text>
-                </Pressable>
-              )}
-            />
+            <View style={{ flex: 1 }}>
+              <View style={styles.recentHead}>
+                <Text style={styles.recentTitle}>Recent Tickets</Text>
+                {tickets.length > 3 && (
+                  <Pressable onPress={() => router.push('/tickets')}><Text style={styles.viewAll}>View all ({tickets.length})</Text></Pressable>
+                )}
+              </View>
+              <FlatList
+                data={tickets.slice(0, 3)}
+                keyExtractor={(t) => t._id}
+                contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 12, paddingBottom: spacing.lg }}
+                renderItem={({ item }) => (
+                  <Pressable style={styles.card} onPress={() => router.push(`/support/${item._id}`)}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.subject} numberOfLines={1}>{item.subject}</Text>
+                      <Text style={styles.meta}>{item.category} · {new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
+                    </View>
+                    <Text style={[styles.status, { color: STATUS_COLOR[item.status] }]}>{item.status}</Text>
+                  </Pressable>
+                )}
+              />
+              <Pressable style={styles.allBtn} onPress={() => router.push('/tickets')}>
+                <Ionicons name="albums-outline" size={16} color={colors.text} />
+                <Text style={styles.allBtnText}>See all tickets</Text>
+              </Pressable>
+            </View>
           )}
         </>
       )}
@@ -95,6 +107,11 @@ const styles = StyleSheet.create({
   subject: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.text },
   meta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   status: { fontFamily: fonts.bodySemibold, fontSize: 11, textTransform: 'capitalize' },
+  recentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+  recentTitle: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.text },
+  viewAll: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.primary },
+  allBtn: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radii.full, paddingVertical: 13, marginHorizontal: spacing.lg, marginTop: 'auto', marginBottom: spacing.lg },
+  allBtnText: { fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.text },
   cancel: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radii.full, paddingVertical: 14, alignItems: 'center' },
   cancelText: { fontFamily: fonts.bodySemibold, color: colors.text },
   submit: { flex: 1, backgroundColor: colors.text, borderRadius: radii.full, paddingVertical: 14, alignItems: 'center' },

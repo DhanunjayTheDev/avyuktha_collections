@@ -23,12 +23,22 @@ const addressSnapshot = new Schema(
     label: String,
     fullName: { type: String, required: true },
     phone: { type: String, required: true },
+    email: String,
     line1: { type: String, required: true },
     line2: String,
     city: { type: String, required: true },
     state: { type: String, required: true },
     pincode: { type: String, required: true },
     country: { type: String, default: 'India' },
+  },
+  { _id: false }
+);
+
+const statusEventSchema = new Schema(
+  {
+    status: { type: String, required: true },
+    note: String,
+    at: { type: Date, default: Date.now },
   },
   { _id: false }
 );
@@ -46,7 +56,7 @@ const orderSchema = new Schema<IOrder>(
     coupon: { type: Schema.Types.ObjectId, ref: 'Coupon' },
     paymentMethod: {
       type: String,
-      enum: ['razorpay', 'upi', 'card', 'netbanking', 'cod'],
+      enum: ['razorpay', 'stripe', 'upi', 'card', 'netbanking', 'cod'],
       required: true,
     },
     paymentStatus: {
@@ -56,11 +66,13 @@ const orderSchema = new Schema<IOrder>(
     },
     razorpayOrderId: String,
     razorpayPaymentId: String,
+    stripePaymentIntentId: String,
     status: {
       type: String,
       enum: ['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'returned', 'cancelled'],
       default: 'pending',
     },
+    statusHistory: { type: [statusEventSchema], default: [] },
     shiprocketOrderId: String,
     awbCode: String,
     trackingUrl: String,
@@ -73,6 +85,9 @@ const orderSchema = new Schema<IOrder>(
 orderSchema.pre('save', function (next) {
   if (!this.orderId) {
     this.orderId = `AVY-${Date.now()}-${uuidv4().slice(0, 6).toUpperCase()}`;
+  }
+  if (this.isNew && (!this.statusHistory || this.statusHistory.length === 0)) {
+    this.statusHistory = [{ status: this.status || 'pending', note: 'Order placed', at: new Date() }];
   }
   next();
 });

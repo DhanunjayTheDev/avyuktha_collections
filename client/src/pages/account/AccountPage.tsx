@@ -193,7 +193,7 @@ function OrdersTab() {
               </div>
               <div className="flex items-center justify-between">
                 <p className="font-heading text-sm font-semibold">{formatPrice(order.total)}</p>
-                <Link to={`/account?tab=orders`} className="font-body text-sm text-primary hover:underline">View Details &rarr;</Link>
+                <Link to={`/orders/${order._id}`} className="font-body text-sm text-primary hover:underline">Track Order &rarr;</Link>
               </div>
             </div>
           ))}
@@ -241,16 +241,39 @@ function WishlistTab() {
 function AddressesTab() {
   const { user, fetchMe } = useAuthStore();
   const [adding, setAdding] = useState(false);
-  const [addrForm, setAddrForm] = useState({ label: 'Home', fullName: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'India', isDefault: false });
+  const [addrForm, setAddrForm] = useState({ label: 'Home', fullName: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '', country: 'India', isDefault: false });
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Optional: capture + reverse-geocode the browser's location.
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { toast.error('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      setCoords({ lat: latitude, lng: longitude });
+      try {
+        const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+        const d = await r.json();
+        setAddrForm((f) => ({
+          ...f,
+          line1: f.line1 || d.locality || '',
+          city: d.city || d.locality || f.city,
+          state: d.principalSubdivision || f.state,
+          pincode: d.postcode || f.pincode,
+        }));
+      } catch {}
+      toast.success('Location captured');
+    }, () => toast.error('Could not get your location'));
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await authApi.manageAddresses({ action: 'add', address: addrForm });
+      await authApi.manageAddresses({ action: 'add', address: { ...addrForm, ...(coords || {}) } });
       await fetchMe();
       setAdding(false);
+      setCoords(null);
       toast.success('Address added');
     } catch {
     } finally {
@@ -270,6 +293,7 @@ function AddressesTab() {
     { key: 'label', label: 'Label', placeholder: 'Home / Work' },
     { key: 'fullName', label: 'Full Name', placeholder: 'Name' },
     { key: 'phone', label: 'Phone', placeholder: '10-digit' },
+    { key: 'email', label: 'Email (order updates)', placeholder: 'name@email.com', col: 2 },
     { key: 'line1', label: 'Address Line 1', placeholder: 'Street / Area', col: 2 },
     { key: 'line2', label: 'Line 2 (optional)', placeholder: 'Landmark', col: 2 },
     { key: 'city', label: 'City', placeholder: 'City' },
@@ -285,6 +309,9 @@ function AddressesTab() {
       </div>
       {adding && (
         <form onSubmit={handleAdd} className="grid grid-cols-2 gap-4 mb-6 p-4 bg-brand-surface">
+          <button type="button" onClick={useCurrentLocation} className="col-span-2 flex items-center justify-center gap-2 border border-primary text-primary text-sm py-2.5 rounded-none hover:bg-primary hover:text-white transition-colors">
+            📍 Use my current location{coords ? ' ✓' : ''}
+          </button>
           {ADDR_FIELDS.map(({ key, label, placeholder, col }) => (
             <div key={key} className={col === 2 ? 'col-span-2' : ''}>
               <label className="input-label">{label}</label>

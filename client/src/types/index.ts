@@ -15,12 +15,15 @@ export interface Address {
   label: string;
   fullName: string;
   phone: string;
+  email?: string;
   line1: string;
   line2?: string;
   city: string;
   state: string;
   pincode: string;
   country: string;
+  lat?: number;
+  lng?: number;
   isDefault: boolean;
 }
 
@@ -136,6 +139,7 @@ export interface Order {
   paymentMethod: string;
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   status: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'returned' | 'cancelled';
+  statusHistory?: { status: string; note?: string; at: string }[];
   awbCode?: string;
   trackingUrl?: string;
   createdAt: string;
